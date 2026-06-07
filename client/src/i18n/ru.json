@@ -1,0 +1,192 @@
+{
+  "app": {
+    "title": "Алгоритмы и структуры данных",
+    "subtitle": "Интерактивный электронный учебник"
+  },
+  "nav": {
+    "catalog": "Каталог",
+    "progress": "Прогресс",
+    "admin": "Админка",
+    "login": "Войти",
+    "register": "Регистрация",
+    "logout": "Выйти",
+    "theme": "Тема",
+    "language": "Язык"
+  },
+  "auth": {
+    "login_title": "Вход в аккаунт",
+    "register_title": "Создать аккаунт",
+    "email": "Email",
+    "username": "Имя пользователя",
+    "password": "Пароль",
+    "submit_login": "Войти",
+    "submit_register": "Зарегистрироваться",
+    "no_account": "Нет аккаунта?",
+    "have_account": "Уже есть аккаунт?",
+    "session_expired": "Сессия истекла. Войдите снова.",
+    "invalid_credentials": "Неверный email или пароль",
+    "validation": {
+      "email_required": "Введите email",
+      "password_min": "Пароль должен быть не короче 8 символов",
+      "username_min": "Имя пользователя — минимум 3 символа"
+    }
+  },
+  "catalog": {
+    "title": "Каталог алгоритмов",
+    "subtitle": "Изучайте алгоритмы интерактивно: теория, визуализация, тесты и практика",
+    "search_placeholder": "Поиск по названию…",
+    "filter_category": "Категория",
+    "filter_difficulty": "Сложность",
+    "filter_all": "Все",
+    "filter_completed": "Только пройденные",
+    "filter_reset": "Сбросить",
+    "empty": "Ничего не найдено",
+    "completed_badge": "Пройдено",
+    "open": "Открыть",
+    "complexity": "Сложность",
+    "time": "Время",
+    "space": "Память"
+  },
+  "difficulty": {
+    "easy": "Лёгкий",
+    "medium": "Средний",
+    "hard": "Сложный"
+  },
+  "algorithm": {
+    "tabs": {
+      "theory": "Теория",
+      "visualization": "Визуализация",
+      "test": "Тест",
+      "practice": "Практика"
+    },
+    "progress_label": "Прогресс",
+    "theory_completed": "Теория изучена",
+    "test_completed": "Тест сдан",
+    "practice_completed": "Практика выполнена",
+    "go_visualization": "Запустить визуализацию",
+    "go_test": "Пройти тест",
+    "go_practice": "К практике"
+  },
+  "theory": {
+    "mark_complete": "Отметить теорию изученной",
+    "marked_complete": "Теория отмечена как изученная",
+    "inline_quiz_title": "Проверьте себя",
+    "check_answer": "Проверить",
+    "next": "Далее",
+    "correct": "Верно!",
+    "incorrect": "Неверно. Попробуйте ещё раз.",
+    "notes_label": "Мои заметки",
+    "notes_placeholder": "Записывайте важные мысли…",
+    "saved": "Заметка сохранена"
+  },
+  "visualization": {
+    "title": "Визуализация",
+    "controls": {
+      "play": "Старт",
+      "pause": "Пауза",
+      "step_forward": "Шаг вперёд",
+      "step_back": "Шаг назад",
+      "reset": "Сброс",
+      "speed": "Скорость"
+    },
+    "stats": {
+      "comparisons": "Сравнения",
+      "swaps": "Обмены",
+      "elapsed": "Время",
+      "step": "Шаг"
+    },
+    "code_label": "Код",
+    "run_code": "Запустить код",
+    "code_running": "Выполнение…",
+    "code_result": "Результат",
+    "code_stdout": "Вывод",
+    "code_error": "Ошибка",
+    "code_runtime": "Время выполнения",
+    "array_input_label": "Введите массив (через запятую)",
+    "code_disabled": "Редактор отключён во время анимации"
+  },
+  "test": {
+    "title": "Тестирование",
+    "question_of": "Вопрос {{current}} из {{total}}",
+    "submit": "Завершить тест",
+    "next": "Далее",
+    "prev": "Назад",
+    "result_title": "Результат",
+    "passed": "Тест сдан!",
+    "failed": "Тест не сдан",
+    "score": "Набрано баллов: {{score}} из {{max}} ({{percent}}%)",
+    "review": "Разбор",
+    "your_answer": "Ваш ответ",
+    "correct_answer": "Правильный ответ",
+    "explanation": "Пояснение",
+    "start": "Начать тест"
+  },
+  "ai": {
+    "title": "AI-помощник",
+    "explain": "Объясни код",
+    "analyze": "Найди ошибки",
+    "new_question": "Новый вопрос",
+    "hint": "Подсказка",
+    "ask_label": "Запрос к AI",
+    "ask_placeholder": "Сформулируйте вопрос…",
+    "send": "Отправить",
+    "thinking": "AI думает…",
+    "cached": "из кэша",
+    "provider": "Провайдер",
+    "error": "Не удалось получить ответ от AI"
+  },
+  "progress": {
+    "title": "Мой прогресс",
+    "subtitle": "Отслеживайте свои достижения",
+    "stats": {
+      "total": "Всего алгоритмов",
+      "completed": "Пройдено",
+      "in_progress": "В процессе",
+      "avg_score": "Средний балл"
+    },
+    "empty": "У вас пока нет прогресса. Начните с каталога."
+  },
+  "admin": {
+    "title": "Администрирование",
+    "algorithms_tab": "Алгоритмы",
+    "users_tab": "Пользователи",
+    "create": "Создать",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "name": "Название",
+    "slug": "URL-slug",
+    "category": "Категория",
+    "difficulty": "Сложность",
+    "description": "Описание",
+    "time_complexity": "Время работы",
+    "space_complexity": "Память",
+    "content": "Содержимое",
+    "export_csv": "Экспорт CSV",
+    "export_pdf": "Экспорт PDF"
+  },
+  "common": {
+    "loading": "Загрузка…",
+    "error": "Ошибка",
+    "retry": "Повторить",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "yes": "Да",
+    "no": "Нет",
+    "back": "Назад",
+    "confirm_delete": "Удалить безвозвратно?",
+    "not_found_title": "Страница не найдена",
+    "not_found_desc": "Возможно, она была перемещена или удалена",
+    "back_home": "На главную"
+  },
+  "errors": {
+    "network": "Нет соединения с сервером",
+    "forbidden": "Доступ запрещён",
+    "unauthorized": "Требуется авторизация",
+    "validation": "Проверьте корректность полей",
+    "server": "Ошибка сервера"
+  }
+}

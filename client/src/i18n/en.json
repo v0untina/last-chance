@@ -1,0 +1,192 @@
+{
+  "app": {
+    "title": "Algorithms & Data Structures",
+    "subtitle": "Interactive electronic textbook"
+  },
+  "nav": {
+    "catalog": "Catalog",
+    "progress": "Progress",
+    "admin": "Admin",
+    "login": "Sign in",
+    "register": "Sign up",
+    "logout": "Sign out",
+    "theme": "Theme",
+    "language": "Language"
+  },
+  "auth": {
+    "login_title": "Sign in",
+    "register_title": "Create account",
+    "email": "Email",
+    "username": "Username",
+    "password": "Password",
+    "submit_login": "Sign in",
+    "submit_register": "Sign up",
+    "no_account": "No account?",
+    "have_account": "Already have an account?",
+    "session_expired": "Session expired. Please sign in again.",
+    "invalid_credentials": "Invalid email or password",
+    "validation": {
+      "email_required": "Enter email",
+      "password_min": "Password must be at least 8 characters",
+      "username_min": "Username must be at least 3 characters"
+    }
+  },
+  "catalog": {
+    "title": "Algorithm catalog",
+    "subtitle": "Learn interactively: theory, visualization, tests and practice",
+    "search_placeholder": "Search by name…",
+    "filter_category": "Category",
+    "filter_difficulty": "Difficulty",
+    "filter_all": "All",
+    "filter_completed": "Completed only",
+    "filter_reset": "Reset",
+    "empty": "Nothing found",
+    "completed_badge": "Completed",
+    "open": "Open",
+    "complexity": "Complexity",
+    "time": "Time",
+    "space": "Space"
+  },
+  "difficulty": {
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard"
+  },
+  "algorithm": {
+    "tabs": {
+      "theory": "Theory",
+      "visualization": "Visualization",
+      "test": "Test",
+      "practice": "Practice"
+    },
+    "progress_label": "Progress",
+    "theory_completed": "Theory done",
+    "test_completed": "Test passed",
+    "practice_completed": "Practice done",
+    "go_visualization": "Start visualization",
+    "go_test": "Take test",
+    "go_practice": "Practice"
+  },
+  "theory": {
+    "mark_complete": "Mark theory as learned",
+    "marked_complete": "Theory marked as learned",
+    "inline_quiz_title": "Check yourself",
+    "check_answer": "Check",
+    "next": "Next",
+    "correct": "Correct!",
+    "incorrect": "Incorrect. Try again.",
+    "notes_label": "My notes",
+    "notes_placeholder": "Write down important ideas…",
+    "saved": "Note saved"
+  },
+  "visualization": {
+    "title": "Visualization",
+    "controls": {
+      "play": "Play",
+      "pause": "Pause",
+      "step_forward": "Step forward",
+      "step_back": "Step back",
+      "reset": "Reset",
+      "speed": "Speed"
+    },
+    "stats": {
+      "comparisons": "Comparisons",
+      "swaps": "Swaps",
+      "elapsed": "Elapsed",
+      "step": "Step"
+    },
+    "code_label": "Code",
+    "run_code": "Run code",
+    "code_running": "Running…",
+    "code_result": "Result",
+    "code_stdout": "Output",
+    "code_error": "Error",
+    "code_runtime": "Runtime",
+    "array_input_label": "Enter array (comma separated)",
+    "code_disabled": "Editor disabled during animation"
+  },
+  "test": {
+    "title": "Test",
+    "question_of": "Question {{current}} of {{total}}",
+    "submit": "Finish test",
+    "next": "Next",
+    "prev": "Previous",
+    "result_title": "Result",
+    "passed": "Passed!",
+    "failed": "Failed",
+    "score": "Score: {{score}} of {{max}} ({{percent}}%)",
+    "review": "Review",
+    "your_answer": "Your answer",
+    "correct_answer": "Correct answer",
+    "explanation": "Explanation",
+    "start": "Start test"
+  },
+  "ai": {
+    "title": "AI Assistant",
+    "explain": "Explain code",
+    "analyze": "Find bugs",
+    "new_question": "New question",
+    "hint": "Hint",
+    "ask_label": "Ask AI",
+    "ask_placeholder": "Formulate your question…",
+    "send": "Send",
+    "thinking": "AI is thinking…",
+    "cached": "from cache",
+    "provider": "Provider",
+    "error": "Failed to get AI response"
+  },
+  "progress": {
+    "title": "My progress",
+    "subtitle": "Track your achievements",
+    "stats": {
+      "total": "Total algorithms",
+      "completed": "Completed",
+      "in_progress": "In progress",
+      "avg_score": "Average score"
+    },
+    "empty": "No progress yet. Start from the catalog."
+  },
+  "admin": {
+    "title": "Administration",
+    "algorithms_tab": "Algorithms",
+    "users_tab": "Users",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "name": "Name",
+    "slug": "URL slug",
+    "category": "Category",
+    "difficulty": "Difficulty",
+    "description": "Description",
+    "time_complexity": "Time complexity",
+    "space_complexity": "Space complexity",
+    "content": "Content",
+    "export_csv": "Export CSV",
+    "export_pdf": "Export PDF"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Error",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back",
+    "confirm_delete": "Delete permanently?",
+    "not_found_title": "Page not found",
+    "not_found_desc": "It may have been moved or deleted",
+    "back_home": "Back home"
+  },
+  "errors": {
+    "network": "No connection to server",
+    "forbidden": "Access denied",
+    "unauthorized": "Authorization required",
+    "validation": "Check the fields",
+    "server": "Server error"
+  }
+}

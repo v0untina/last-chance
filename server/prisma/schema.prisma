@@ -1,0 +1,272 @@
+// Algorithms Textbook — Database Schema
+// PostgreSQL 15 + Prisma 5
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = []
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+// === ENUMS ===
+
+enum UserRole {
+  student
+  teacher
+  admin
+}
+
+enum DifficultyLevel {
+  easy
+  medium
+  hard
+}
+
+enum QuestionType {
+  single_choice
+  multiple_choice
+  matching
+  short_answer
+}
+
+enum AttemptStatus {
+  in_progress
+  completed
+  abandoned
+}
+
+// === MODELS ===
+
+model User {
+  user_id       Int      @id @default(autoincrement())
+  username      String   @unique @db.VarChar(100)
+  email         String   @unique @db.VarChar(150)
+  password_hash String   @db.VarChar(255)
+  role          UserRole @default(student)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  progress    UserProgress[]
+  solutions   UserSolution[]
+  attempts    TestAttempt[]
+  ai_feedbacks AIFeedback[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model Algorithm {
+  algorithm_id     Int             @id @default(autoincrement())
+  slug             String          @unique @db.VarChar(100)
+  name             String          @db.VarChar(150)
+  category         String          @db.VarChar(100)
+  difficulty       DifficultyLevel
+  description      String?         @db.Text
+  time_complexity  String?         @db.VarChar(50)
+  space_complexity String?         @db.VarChar(50)
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+
+  theory_materials TheoryMaterial[]
+  tasks            Task[]
+  tests            Test[]
+  progress         UserProgress[]
+
+  @@index([category])
+  @@index([difficulty])
+  @@index([slug])
+  @@map("algorithms")
+}
+
+model TheoryMaterial {
+  material_id  Int      @id @default(autoincrement())
+  algorithm_id Int
+  title        String   @db.VarChar(200)
+  content      String   @db.Text
+  type         String?  @db.VarChar(50)
+  order_num    Int
+  quiz         Json?    @default("null")
+  created_at   DateTime @default(now())
+
+  algorithm Algorithm @relation(fields: [algorithm_id], references: [algorithm_id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@index([algorithm_id, order_num])
+  @@map("theory_materials")
+}
+
+model Test {
+  test_id        Int      @id @default(autoincrement())
+  algorithm_id   Int
+  title          String   @db.VarChar(200)
+  description    String?  @db.Text
+  passing_score  Int      @default(70)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  algorithm Algorithm      @relation(fields: [algorithm_id], references: [algorithm_id], onDelete: Cascade)
+  questions Question[]
+  attempts  TestAttempt[]
+
+  @@index([algorithm_id])
+  @@map("tests")
+}
+
+model Question {
+  question_id    Int          @id @default(autoincrement())
+  test_id        Int
+  question_text  String       @db.Text
+  question_type  QuestionType
+  explanation    String?      @db.Text
+  correct_answer String?      @db.Text
+  order_num      Int
+  created_at     DateTime     @default(now())
+
+  test    Test         @relation(fields: [test_id], references: [test_id], onDelete: Cascade)
+  options Option[]
+  answers UserAnswer[]
+
+  @@index([test_id, order_num])
+  @@map("questions")
+}
+
+model Option {
+  option_id    Int      @id @default(autoincrement())
+  question_id  Int
+  option_text  String   @db.Text
+  is_correct   Boolean  @default(false)
+  order_num    Int
+
+  question Question @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
+
+  @@index([question_id, order_num])
+  @@map("options")
+}
+
+model Task {
+  task_id        Int      @id @default(autoincrement())
+  algorithm_id   Int
+  material_id    Int?
+  name           String   @db.VarChar(200)
+  description    String   @db.Text
+  starter_code   String?  @db.Text
+  correct_answer String?  @db.Text
+  tests          Json?    @default("[]")
+  language       String?  @db.VarChar(20) @default("javascript")
+  order_num      Int      @default(0)
+  created_at     DateTime @default(now())
+
+  algorithm  Algorithm       @relation(fields: [algorithm_id], references: [algorithm_id], onDelete: Cascade)
+  material   TheoryMaterial? @relation(fields: [material_id], references: [material_id], onDelete: SetNull)
+  solutions  UserSolution[]
+
+  @@index([algorithm_id])
+  @@index([material_id])
+  @@map("tasks")
+}
+
+model UserProgress {
+  progress_id         Int       @id @default(autoincrement())
+  user_id             Int
+  algorithm_id        Int
+  theory_completed    Boolean   @default(false)
+  test_completed      Boolean   @default(false)
+  practice_completed  Boolean   @default(false)
+  score_percent       Int?
+  completed_at        DateTime?
+  updated_at          DateTime  @updatedAt
+
+  user      User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  algorithm Algorithm @relation(fields: [algorithm_id], references: [algorithm_id], onDelete: Cascade)
+
+  @@unique([user_id, algorithm_id])
+  @@index([user_id])
+  @@index([algorithm_id])
+  @@map("user_progress")
+}
+
+model TestAttempt {
+  attempt_id   Int           @id @default(autoincrement())
+  test_id      Int
+  user_id      Int
+  status       AttemptStatus @default(in_progress)
+  score        Int           @default(0)
+  max_score    Int           @default(0)
+  passed       Boolean       @default(false)
+  started_at   DateTime      @default(now())
+  completed_at DateTime?
+
+  test    Test         @relation(fields: [test_id], references: [test_id], onDelete: Cascade)
+  user    User         @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  answers UserAnswer[]
+
+  @@index([user_id])
+  @@index([test_id])
+  @@index([user_id, started_at])
+  @@map("test_attempts")
+}
+
+model UserAnswer {
+  answer_id   Int      @id @default(autoincrement())
+  attempt_id  Int
+  question_id Int
+  answer_text String   @db.Text
+  is_correct  Boolean  @default(false)
+  created_at  DateTime @default(now())
+
+  attempt  TestAttempt @relation(fields: [attempt_id], references: [attempt_id], onDelete: Cascade)
+  question Question    @relation(fields: [question_id], references: [question_id], onDelete: Cascade)
+
+  @@unique([attempt_id, question_id])
+  @@index([attempt_id])
+  @@index([question_id])
+  @@map("user_answers")
+}
+
+model UserSolution {
+  solution_id     Int      @id @default(autoincrement())
+  user_id         Int
+  task_id         Int
+  code            String   @db.Text
+  language        String   @db.VarChar(20) @default("javascript")
+  result          String?  @db.VarChar(100)
+  score           Int      @default(0)
+  execution_time  Int?
+  is_correct      Boolean  @default(false)
+  submission_date DateTime @default(now())
+
+  user        User         @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  task        Task         @relation(fields: [task_id], references: [task_id], onDelete: Cascade)
+  ai_feedbacks AIFeedback[]
+
+  @@index([user_id])
+  @@index([task_id])
+  @@index([user_id, submission_date])
+  @@map("user_solutions")
+}
+
+model AIFeedback {
+  feedback_id    Int      @id @default(autoincrement())
+  solution_id    Int?
+  user_id        Int
+  prompt_type    String   @db.VarChar(50)
+  prompt_content String   @db.Text
+  ai_response    String   @db.Text
+  provider_used  String   @db.VarChar(50)
+  tokens_used    Int?
+  created_at     DateTime @default(now())
+
+  solution UserSolution? @relation(fields: [solution_id], references: [solution_id], onDelete: SetNull)
+  user     User          @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([solution_id])
+  @@index([prompt_type])
+  @@index([created_at])
+  @@map("ai_feedbacks")
+}

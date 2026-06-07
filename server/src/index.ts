@@ -26,6 +26,7 @@ import { TestController } from "./controllers/TestController";
 import { SolutionController } from "./controllers/SolutionController";
 import { ProgressController } from "./controllers/ProgressController";
 import { AIController } from "./controllers/AIController";
+import { ExecuteController } from "./controllers/ExecuteController";
 import { AdminController } from "./controllers/AdminController";
 import { TheoryController } from "./controllers/TheoryController";
 
@@ -37,6 +38,7 @@ import { createProgressRouter } from "./routes/progress.routes";
 import { createAIRouter } from "./routes/ai.routes";
 import { createAdminRouter } from "./routes/admin.routes";
 import { createTheoryRouter } from "./routes/theory.routes";
+import { createExecuteRouter } from "./routes/execute.routes";
 
 const SERVER_START_TIME = Date.now();
 const VERSION = "1.0.0";
@@ -61,6 +63,7 @@ export function buildApp(): Application {
   const solController = new SolutionController(solutionRepo, progressRepo);
   const progController = new ProgressController(progressRepo);
   const aiController = new AIController();
+  const executeController = new ExecuteController();
   const adminController = new AdminController(userRepo, algoRepo);
   const theoryController = new TheoryController();
 
@@ -134,6 +137,7 @@ export function buildApp(): Application {
   app.use("/api/solutions", createSolutionRouter(solController));
   app.use("/api/progress", createProgressRouter(progController));
   app.use("/api/ai", createAIRouter(aiController));
+  app.use("/api/execute", createExecuteRouter(executeController));
   app.use("/api/admin", createAdminRouter(adminController));
   app.use("/api/theory", createTheoryRouter(theoryController));
 

@@ -185,6 +185,23 @@ export interface AIResponse {
   data: { text: string; provider: string; tokensUsed?: number; cached?: boolean };
 }
 
+export interface DualAIResponse {
+  data: {
+    openai: { text: string; provider: string; tokensUsed?: number } | null;
+    gigachat: { text: string; provider: string; tokensUsed?: number } | null;
+  };
+}
+
+export interface ExecuteResult {
+  data: {
+    output: string;
+    runtime: number;
+    passed: boolean;
+    error: string | null;
+    signal: string | null;
+  };
+}
+
 export interface SubmitAttemptRequest {
   answers: { question_id: number; answer_text: string }[];
 }

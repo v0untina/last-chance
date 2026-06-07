@@ -23,6 +23,7 @@ export function createAIRouter(controller: AIController): Router {
     controller.generateQuestion
   );
   router.post("/analyze-code", validate(aiAnalyzeCodeSchema), controller.analyzeCode);
+  router.post("/analyze-dual", controller.analyzeDual);
   router.get("/stats", controller.stats);
 
   return router;

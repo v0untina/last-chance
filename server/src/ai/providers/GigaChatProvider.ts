@@ -1,9 +1,12 @@
 import axios, { AxiosError } from "axios";
+import https from "node:https";
 import { BaseAIProvider } from "../interfaces/BaseAIProvider";
 import { AIPrompt, AIResponse } from "../interfaces/IAIProvider";
 import { config } from "../../config/env";
 import { logger } from "../../config/logger";
 import { AIProviderUnavailableError } from "../../utils/errors";
+
+const gigaChatAgent = new https.Agent({ rejectUnauthorized: false });
 
 interface GigaChatMessage {
   role: "system" | "user" | "assistant";
@@ -67,6 +70,7 @@ export class GigaChatProvider extends BaseAIProvider {
             Authorization: `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString("base64")}`,
             RqUID: crypto.randomUUID(),
           },
+          httpsAgent: gigaChatAgent,
           timeout: 10000,
         }
       );
@@ -110,6 +114,7 @@ export class GigaChatProvider extends BaseAIProvider {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          httpsAgent: gigaChatAgent,
           timeout: config.GIGACHAT_TIMEOUT_MS,
         }
       );

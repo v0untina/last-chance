@@ -145,6 +145,38 @@ export class AIController {
     }
   };
 
+  analyzeDual = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { code, errorMessage, algorithmName, language = "javascript" } = req.body;
+      if (!code) throw new BadRequestError("code обязателен");
+
+      const prompt: string = errorMessage
+        ? `Студент написал код алгоритма "${algorithmName ?? ""}" на ${language}, но получил ошибку.\n\nКод:\n${code.slice(0, 2000)}\n\nОшибка: ${errorMessage}\n\nОбъясни простым языком, что пошло не так и как исправить. Напиши по-русски.`
+        : `Студент написал код алгоритма "${algorithmName ?? ""}" на ${language}.\n\nКод:\n${code.slice(0, 2000)}\n\nПроанализируй код: найди ошибки, оцени сложность, дай советы по улучшению. Если код правильный — похвали. Напиши по-русски.`;
+
+      const aiPrompt: AIPrompt = {
+        type: errorMessage ? "explain_error" : "analyze_code",
+        systemPrompt: errorMessage
+          ? "Ты — добрый педагог. Объясни ошибку простым языком, без сложных терминов. До 200 слов."
+          : "Ты — ревьюер кода. Проанализируй код, найди ошибки, оцени сложность. Если всё верно — похвали. До 200 слов.",
+        userContent: prompt,
+        temperature: 0.5,
+        maxTokens: 600,
+      };
+
+      const result = await aiFactory.generateDual(aiPrompt);
+
+      res.json({
+        data: {
+          openai: result.openai ? this.toClientResponse(result.openai) : null,
+          gigachat: result.gigachat ? this.toClientResponse(result.gigachat) : null,
+        },
+      });
+    } catch (e) {
+      next(e);
+    }
+  };
+
   stats = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       res.json({

@@ -123,6 +123,26 @@ export class AIProviderFactory {
     return provider.analyzeCode(code, language, algorithmName);
   }
 
+  async generateDual(prompt: AIPrompt): Promise<{ openai: AIResponse | null; gigachat: AIResponse | null }> {
+    const results: { openai: AIResponse | null; gigachat: AIResponse | null } = { openai: null, gigachat: null };
+
+    await Promise.all(
+      this.providers.map(async (provider) => {
+        if (this.isCircuitOpen(provider.name)) return;
+        try {
+          const res = await provider.generateExplanation(prompt);
+          if (provider.name === "openai") results.openai = res;
+          if (provider.name === "gigachat") results.gigachat = res;
+        } catch (e) {
+          this.recordFailure(provider.name);
+          logger.warn(`[AIFactory] dual '${provider.name}' failed`, { error: (e as Error).message });
+        }
+      })
+    );
+
+    return results;
+  }
+
   getProvidersInfo(): Array<{ name: string; circuitState: CircuitBreakerState | "closed" }> {
     return this.providers.map((p) => {
       const state = this.circuitBreaker.get(p.name);

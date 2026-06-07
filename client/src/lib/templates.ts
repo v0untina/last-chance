@@ -288,7 +288,16 @@ export function getTemplate(algorithmSlug: string, language: SupportedLanguage):
   return algoTemplates[language] ?? "";
 }
 
+export function getPistonLanguage(lang: SupportedLanguage): string {
+  return lang === "cpp" ? "c++" : lang;
+}
+
 export function getDefaultTestInput(algorithmSlug: string): unknown[] {
   if (algorithmSlug === "binary-search") return [[1, 3, 5, 7, 9, 11, 13], 7];
   return [[5, 2, 8, 1, 9, 3]];
+}
+
+export function getExpectedOutput(algorithmSlug: string): string {
+  if (algorithmSlug === "binary-search") return "3";
+  return JSON.stringify([1, 2, 3, 5, 8, 9]);
 }

@@ -33,12 +33,15 @@ interface OpenAIResponse {
 
 export class OpenAIProvider extends BaseAIProvider {
   readonly name = "openai";
-  private readonly baseURL = "https://api.openai.com/v1/chat/completions";
+  private readonly baseURL: string;
   private readonly apiKey: string;
 
   constructor() {
     super();
     this.apiKey = config.OPENAI_API_KEY;
+    this.baseURL = this.apiKey.startsWith("sk-or-v1")
+      ? "https://openrouter.ai/api/v1/chat/completions"
+      : "https://api.openai.com/v1/chat/completions";
   }
 
   protected async callAI(prompt: AIPrompt): Promise<AIResponse> {
@@ -113,7 +116,10 @@ export class OpenAIProvider extends BaseAIProvider {
   async healthCheck(): Promise<boolean> {
     if (!this.apiKey) return false;
     try {
-      await axios.get("https://api.openai.com/v1/models", {
+      const healthUrl = this.apiKey.startsWith("sk-or-v1")
+        ? "https://openrouter.ai/api/v1/models"
+        : "https://api.openai.com/v1/models";
+      await axios.get(healthUrl, {
         headers: { Authorization: `Bearer ${this.apiKey}` },
         timeout: 5000,
       });

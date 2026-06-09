@@ -18,10 +18,11 @@ import {
   type SupportedLanguage
 } from "@/lib/templates";
 import { templates } from "@/lib/templates";
-import type { Algorithm, DualAIResponse, ExecuteResult } from "@/types/api";
+import type { Algorithm, DualAIResponse, ExecuteResult, TraceResponse } from "@/types/api";
 import type { WorkerRequest, WorkerResponse, TraceOp } from "@/workers/code-executor.worker";
 import { DiffView } from "@/components/DiffView";
 import { api, extractErrorMessage } from "@/lib/api";
+import { useProgress } from "@/stores/progress";
 
 loader.init().then((monaco) => {
   monaco.editor.defineTheme("algo-dark", {
@@ -177,7 +178,7 @@ export default function PracticeTab() {
     return { passed, output: JSON.stringify(result.value), runtime: result.runtime, trace: result.trace };
   }, [algo.slug]);
 
-  const executePiston = useCallback(async (codeToRun: string): Promise<{ passed: boolean; output: string; runtime?: number }> => {
+  const executePiston = useCallback(async (codeToRun: string): Promise<{ passed: boolean; output: string; runtime?: number; trace?: TraceOp[] }> => {
     const input = [...arrayRef.current];
     const { data } = await api.post<ExecuteResult>("/execute/run", { language, code: codeToRun, input });
     const expected = algo.slug === "binary-search"
@@ -187,6 +188,24 @@ export default function PracticeTab() {
     return { passed, output: data.data.output, runtime: data.data.runtime };
   }, [language, algo.slug]);
 
+  const fetchServerTrace = useCallback(async (): Promise<TraceOp[] | undefined> => {
+    try {
+      const target = algo.slug === "binary-search"
+        ? arrayRef.current[Math.floor(arrayRef.current.length / 2)]
+        : undefined;
+      const { data } = await api.post<TraceResponse>("/execute/trace", {
+        slug: algo.slug,
+        input: arrayRef.current,
+        target,
+      });
+      return data.data.ok ? data.data.trace : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [algo.slug]);
+
+  const markProgress = useProgress((s) => s.markSection);
+
   const handleRun = async () => {
     if (running) return;
     setRunning(true);
@@ -195,9 +214,18 @@ export default function PracticeTab() {
     setAiGigaChat(null);
 
     try {
-      const result = language === "javascript"
-        ? await executeJS(code, true)
-        : await executePiston(code);
+      let result: { passed: boolean; output: string; runtime?: number; trace?: TraceOp[] };
+      if (language === "javascript") {
+        result = await executeJS(code, true);
+      } else {
+        const piston = await executePiston(code);
+        if (piston.passed) {
+          const trace = await fetchServerTrace();
+          result = { ...piston, trace };
+        } else {
+          result = piston;
+        }
+      }
       setRunResult(result);
 
       if (result.passed) {
@@ -216,6 +244,8 @@ export default function PracticeTab() {
             setPlaying(false);
           }
         }
+        markProgress(algo.slug, "practice", 100);
+        api.put(`/progress/${algo.algorithm_id}`, { practice_completed: true }).catch(() => {});
         fetchDualAI(code);
       } else {
         fetchDualAI(code, result.output);
@@ -334,7 +364,7 @@ export default function PracticeTab() {
           <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border bg-bg-subtle shrink-0">
             <Eye className="h-3.5 w-3.5 text-accent" />
             <span className="text-xs font-medium">
-              {codeHasError ? "⛔ Код содержит ошибку" : `Визуализация ${runResult?.trace ? "(ваш код)" : "(эталон)"}`}
+              {codeHasError ? "⛔ Код содержит ошибку" : `Визуализация ${runResult?.trace ? (language === "javascript" ? "(ваш код)" : "(серверная симуляция)") : "(эталон)"}`}
             </span>
             {!codeHasError && (
               <div className="ml-auto flex items-center gap-1">

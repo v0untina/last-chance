@@ -26,10 +26,9 @@ export const aiRateLimiter = rateLimit({
   handler: (req: Request, _res: Response, next: NextFunction) => {
     logger.warn("Rate limit exceeded (AI)", {
       ip: req.ip,
-      userId: req.user?.user_id,
       path: req.path,
     });
     next(new Error("AI_RATE_LIMIT_EXCEEDED"));
   },
-  keyGenerator: (req) => req.user?.user_id?.toString() || req.ip || "unknown",
+  keyGenerator: (req) => req.ip || "unknown",
 });

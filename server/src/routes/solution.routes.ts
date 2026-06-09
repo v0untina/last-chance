@@ -6,9 +6,9 @@ import { solutionSchema } from "../validators/schemas";
 export function createSolutionRouter(controller: SolutionController): Router {
   const router = Router();
 
-  // Публичный маршрут — для анонимных пользователей
   router.post("/", validate(solutionSchema), controller.submitPublic);
   router.get("/task/:taskId", controller.getByTask);
+  router.get("/my", controller.getUserSolutions);
 
   return router;
 }

@@ -6,33 +6,42 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { api } from "@/lib/api";
 import { Link } from "react-router-dom";
-import type { Algorithm, UserProgress } from "@/types/api";
+import type { Algorithm } from "@/types/api";
 import { pluralRu } from "@/lib/format";
+import { useProgress, type AlgorithmProgress } from "@/stores/progress";
+import { api } from "@/lib/api";
 
-interface ProgressEntry { algorithm: Algorithm; progress: UserProgress; }
+interface ProgressEntry { algorithm: Algorithm; progress: AlgorithmProgress; }
 
 export default function ProgressPage() {
   const { t } = useTranslation();
-  const [data, setData] = useState<ProgressEntry[]>([]);
+  const bySlug = useProgress((s) => s.bySlug);
+  const [algorithms, setAlgorithms] = useState<Algorithm[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    api.get<{ data: ProgressEntry[] }>("/progress")
-      .then(({ data }) => { if (!cancelled) setData(data.data ?? []); })
-      .catch(() => { if (!cancelled) setData([]); })
+    api.get<{ data: Algorithm[] }>("/algorithms", { params: { limit: 100 } })
+      .then(({ data }) => { if (!cancelled) setAlgorithms(data.data ?? []); })
+      .catch(() => { if (!cancelled) setAlgorithms([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
   if (loading) return <PageLoader label={t("common.loading")} />;
 
+  const data: ProgressEntry[] = algorithms
+    .map((algorithm) => {
+      const progress = bySlug[algorithm.slug];
+      return progress ? { algorithm, progress } : null;
+    })
+    .filter((x): x is ProgressEntry => x !== null);
+
   const completed = data.filter((d) => d.progress.theory_completed && d.progress.test_completed && d.progress.practice_completed);
   const inProgress = data.filter((d) => !(d.progress.theory_completed && d.progress.test_completed && d.progress.practice_completed) && (d.progress.theory_completed || d.progress.test_completed || d.progress.practice_completed));
   const avgScore = data.length > 0
-    ? Math.round(data.reduce((s, d) => s + (d.progress.score_percent ?? 0), 0) / data.length)
+    ? Math.round(data.reduce((s, d) => s + (d.progress.best_score_percent ?? 0), 0) / data.length)
     : 0;
 
   const pieData = [
@@ -42,7 +51,7 @@ export default function ProgressPage() {
   ];
   const barData = data.map((d) => ({
     name: d.algorithm.name.length > 12 ? d.algorithm.name.slice(0, 12) + "…" : d.algorithm.name,
-    score: d.progress.score_percent ?? 0,
+    score: d.progress.best_score_percent ?? 0,
   }));
 
   return (

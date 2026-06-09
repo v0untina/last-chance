@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { useAuth } from "@/stores/auth";
 import { applyInitialTheme } from "@/stores/theme";
+import { useAuth } from "@/stores/auth";
 import { AppShell } from "@/components/layout/AppShell";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { PageLoader } from "@/components/ui/PageLoader";
 import "@/i18n";
 
 import HomePage from "@/pages/HomePage";
@@ -15,13 +16,21 @@ import VisualizationTab from "@/pages/tabs/VisualizationTab";
 import TestTab from "@/pages/tabs/TestTab";
 import PracticeTab from "@/pages/tabs/PracticeTab";
 import ProgressPage from "@/pages/ProgressPage";
-import AdminPage from "@/pages/AdminPage";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import ProfilePage from "@/pages/ProfilePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 export default function App() {
-  const { initialize } = useAuth();
+  const loadUser = useAuth((s) => s.loadUser);
+  const loading = useAuth((s) => s.loading);
 
-  useEffect(() => { applyInitialTheme(); initialize(); }, [initialize]);
+  useEffect(() => {
+    applyInitialTheme();
+    loadUser();
+  }, [loadUser]);
+
+  if (loading) return <PageLoader label="Загрузка…" />;
 
   return (
     <BrowserRouter>
@@ -40,7 +49,9 @@ export default function App() {
           </Route>
 
           <Route path="progress" element={<ProgressPage />} />
-          <Route path="admin" element={<AdminPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route path="profile" element={<ProfilePage />} />
 
           <Route path="*" element={<NotFoundPage />} />
         </Route>

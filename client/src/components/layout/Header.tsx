@@ -1,13 +1,16 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/stores/theme";
-import { Moon, Sun, Languages, BookOpen, BarChart3, ShieldCheck } from "lucide-react";
+import { useAuth } from "@/stores/auth";
+import { Moon, Sun, Languages, BookOpen, BarChart3, User, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 
 export function Header() {
   const { t, i18n } = useTranslation();
   const { mode, toggle } = useTheme();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const switchLang = () => {
     const next = i18n.language.startsWith("ru") ? "en" : "ru";
@@ -34,13 +37,27 @@ export function Header() {
             <BarChart3 className="h-4 w-4" />
             <span className="hidden md:inline">{t("nav.progress")}</span>
           </NavLink>
-          <NavLink to="/admin" className={({ isActive }) => cn("btn btn-ghost btn-sm", isActive && "bg-bg-subtle")}>
-            <ShieldCheck className="h-4 w-4" />
-            <span className="hidden md:inline">{t("nav.admin")}</span>
-          </NavLink>
         </nav>
 
         <div className="flex items-center gap-1">
+          {user ? (
+            <>
+              <NavLink to="/profile" className={({ isActive }) => cn("btn btn-ghost btn-sm", isActive && "bg-bg-subtle")}>
+                <User className="h-4 w-4" />
+                <span className="hidden md:inline max-w-[100px] truncate">{user.username}</span>
+              </NavLink>
+              <Button variant="ghost" size="sm" onClick={() => { logout(); navigate("/"); }} title="Выйти">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <NavLink to="/login" className={({ isActive }) => cn("btn btn-ghost btn-sm", isActive && "bg-bg-subtle")}>
+                <LogIn className="h-4 w-4" />
+                <span className="hidden md:inline">Войти</span>
+              </NavLink>
+            </>
+          )}
           <Button variant="ghost" size="sm" onClick={switchLang} aria-label={t("nav.language")}>
             <Languages className="h-4 w-4" />
             <span className="text-xs uppercase">{i18n.language.slice(0, 2)}</span>

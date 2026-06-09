@@ -6,30 +6,8 @@
   "nav": {
     "catalog": "Catalog",
     "progress": "Progress",
-    "admin": "Admin",
-    "login": "Sign in",
-    "register": "Sign up",
-    "logout": "Sign out",
     "theme": "Theme",
     "language": "Language"
-  },
-  "auth": {
-    "login_title": "Sign in",
-    "register_title": "Create account",
-    "email": "Email",
-    "username": "Username",
-    "password": "Password",
-    "submit_login": "Sign in",
-    "submit_register": "Sign up",
-    "no_account": "No account?",
-    "have_account": "Already have an account?",
-    "session_expired": "Session expired. Please sign in again.",
-    "invalid_credentials": "Invalid email or password",
-    "validation": {
-      "email_required": "Enter email",
-      "password_min": "Password must be at least 8 characters",
-      "username_min": "Username must be at least 3 characters"
-    }
   },
   "catalog": {
     "title": "Algorithm catalog",
@@ -145,26 +123,6 @@
       "avg_score": "Average score"
     },
     "empty": "No progress yet. Start from the catalog."
-  },
-  "admin": {
-    "title": "Administration",
-    "algorithms_tab": "Algorithms",
-    "users_tab": "Users",
-    "create": "Create",
-    "edit": "Edit",
-    "delete": "Delete",
-    "save": "Save",
-    "cancel": "Cancel",
-    "name": "Name",
-    "slug": "URL slug",
-    "category": "Category",
-    "difficulty": "Difficulty",
-    "description": "Description",
-    "time_complexity": "Time complexity",
-    "space_complexity": "Space complexity",
-    "content": "Content",
-    "export_csv": "Export CSV",
-    "export_pdf": "Export PDF"
   },
   "common": {
     "loading": "Loading…",

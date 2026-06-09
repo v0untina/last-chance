@@ -4,6 +4,7 @@
     "module": "commonjs",
     "lib": ["ES2022"],
     "outDir": "./dist",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -28,6 +29,6 @@
     },
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*", "prisma/**/*", "tests/**/*"],
-  "exclude": ["node_modules", "dist", "coverage"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "coverage", "prisma", "tests"]
 }

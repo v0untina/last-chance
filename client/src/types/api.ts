@@ -1,4 +1,6 @@
 export type Role = "student" | "teacher" | "admin";
+import type { TraceOp } from "@/workers/code-executor.worker";
+
 export type Difficulty = "easy" | "medium" | "hard";
 export type QuestionType = "single_choice" | "multiple_choice" | "matching" | "short_answer";
 export type AttemptStatus = "in_progress" | "completed" | "abandoned";
@@ -14,19 +16,6 @@ export interface ApiError {
 export interface Paginated<T> {
   data: T[];
   meta?: { page: number; limit: number; total: number; totalPages: number };
-}
-
-export interface User {
-  user_id: number;
-  username: string;
-  email: string;
-  role: Role;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: string;
-  expiresIn: string;
 }
 
 export interface Algorithm {
@@ -124,6 +113,16 @@ export interface UserProgress {
   completed_at?: string | null;
   updated_at: string;
 }
+  progress_id: number;
+  user_id: number;
+  algorithm_id: number;
+  theory_completed: boolean;
+  test_completed: boolean;
+  practice_completed: boolean;
+  score_percent?: number | null;
+  completed_at?: string | null;
+  updated_at: string;
+}
 
 export interface TestAttempt {
   attempt_id: number;
@@ -199,6 +198,14 @@ export interface ExecuteResult {
     passed: boolean;
     error: string | null;
     signal: string | null;
+  };
+}
+
+export interface TraceResponse {
+  data: {
+    trace: TraceOp[];
+    ok: boolean;
+    error: string | null;
   };
 }
 

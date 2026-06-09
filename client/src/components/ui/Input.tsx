@@ -1,4 +1,4 @@
-import { type InputHTMLAttributes, type TextareaHTMLAttributes, forwardRef } from "react";
+import { type InputHTMLAttributes, type TextareaHTMLAttributes, forwardRef, useId } from "react";
 import { cn } from "@/lib/cn";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -11,7 +11,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { label, error, hint, className, id, ...rest },
   ref
 ) {
-  const inputId = id ?? `input-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId();
+  const inputId = id ?? `input-${autoId}`;
   return (
     <div className="w-full">
       {label && <label htmlFor={inputId} className="label">{label}</label>}
@@ -38,7 +39,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   { label, error, className, id, ...rest },
   ref
 ) {
-  const inputId = id ?? `ta-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId();
+  const inputId = id ?? `ta-${autoId}`;
   return (
     <div className="w-full">
       {label && <label htmlFor={inputId} className="label">{label}</label>}

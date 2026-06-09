@@ -62,10 +62,7 @@ export abstract class BaseAIProvider implements IAIProvider {
     });
     const prompt: AIPrompt = {
       type: "generate_question",
-      systemPrompt: `Ты — педагог по алгоритмам и структурам данных.
-Сгенерируй ОДИН новый вопрос по теме для проверки знаний студента.
-Верни строго JSON с полями: question_text, question_type, options (если single/multiple), correct_answer, explanation.
-Вопрос должен быть уникальным, не повторять предыдущие.`,
+      systemPrompt: `Ты — педагог по алгоритмам. Сгенерируй 1 вопрос по теме с 4 вариантами. В каждом варианте дай развёрнутое объяснение (минимум 40 слов, объясни почему вариант правильный или нет, приведи пример). Формат: { question_text, options: [{ text, is_correct, explanation }], explanation: "общее резюме" }. Только JSON. Не повторяй предыдущий вопрос.`,
       userContent: `Алгоритм: ${context.algorithmName}
 Тема: ${context.topic}
 Сложность: ${context.difficulty}
@@ -95,12 +92,7 @@ ${context.previousQuestion ? `Предыдущий вопрос (не повто
     }
     const prompt: AIPrompt = {
       type: "analyze_code",
-      systemPrompt: `Ты — эксперт по алгоритмам. Проанализируй код студента.
-Верни строго JSON с полями:
-- issues: массив {line, severity ("info"|"warning"|"error"), message, suggestion}
-- complexity: {time, space} — оценка O-нотации
-- improvements: массив рекомендаций по оптимизации
-- summary: краткий вывод (1-2 предложения)`,
+      systemPrompt: `Ты — эксперт по алгоритмам. Проанализируй код студента. Только JSON: issues (line, severity, message, suggestion), complexity (time, space), improvements (массив), summary (1 предложение).`,
       userContent: `Алгоритм: ${algorithmName}
 Язык: ${language}
 

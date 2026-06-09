@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import axios from "axios";
 import { BadRequestError } from "../utils/errors";
 import { logger } from "../config/logger";
+import { simulate, type TraceOp } from "../utils/algoSimulator";
 
 const PISTON_URL = "https://piston.codex.lol/api/v2/execute";
 
@@ -76,6 +77,26 @@ export class ExecuteController {
         return;
       }
       logger.error("[Execute] failed", { error: e?.message });
+      next(e);
+    }
+  };
+
+  trace = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { slug, input, target } = req.body as { slug?: string; input?: number[]; target?: number };
+      if (!slug || !Array.isArray(input)) {
+        throw new BadRequestError("slug и input обязательны");
+      }
+      if (input.length > 50) {
+        throw new BadRequestError("input слишком большой (макс. 50 элементов)");
+      }
+      const result = simulate(slug, input, target);
+      if (!result.ok) {
+        res.status(400).json({ data: { trace: [] as TraceOp[], ok: false, error: result.error } });
+        return;
+      }
+      res.json({ data: { trace: result.steps, ok: true, error: null } });
+    } catch (e) {
       next(e);
     }
   };

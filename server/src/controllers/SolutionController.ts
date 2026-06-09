@@ -1,60 +1,28 @@
 import { Request, Response, NextFunction } from "express";
 import { UserSolutionRepository } from "../repositories/UserSolutionRepository";
-import { ProgressRepository } from "../repositories/ProgressRepository";
-import { NotFoundError } from "../utils/errors";
 
 export class SolutionController {
-  constructor(
-    private solutions: UserSolutionRepository,
-    private progress: ProgressRepository
-  ) {}
+  constructor(private solutions: UserSolutionRepository) {}
 
-  submit = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      if (!req.user) throw new NotFoundError("Unauthorized");
-      const { task_id, code, language, execution_time, result, score, is_correct } = req.body;
-
-      const solution = await this.solutions.submit({
-        user_id: req.user.user_id,
-        task_id,
-        code,
-        language: language || "javascript",
-        execution_time,
-        result,
-        score: score || 0,
-        is_correct: is_correct || false,
-      });
-
-      if (is_correct) {
-        await this.progress.upsert(req.user.user_id, req.body.algorithm_id || 0, {
-          practice_completed: true,
-          score_percent: Math.max(0, Math.min(100, score || 0)),
-        });
-      }
-
-      res.status(201).json({ data: solution });
-    } catch (e) {
-      next(e);
-    }
-  };
-
-  listMine = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      if (!req.user) throw new NotFoundError("Unauthorized");
-      const items = await this.solutions.listByUser(req.user.user_id);
-      res.json({ data: items });
-    } catch (e) {
-      next(e);
-    }
-  };
-
-  // Публичный: отправить решение (анонимно, без сохранения в БД)
   submitPublic = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { task_id, code, language, execution_time, result, score, is_correct } = req.body;
-      // Для анонимного режима — выполняем проверку кода в Web Worker на клиенте,
-      // здесь просто принимаем результат и возвращаем подтверждение.
-      // score и is_correct присылает клиент после локального прогона тестов.
+
+      if (req.user?.user_id) {
+        const saved = await this.solutions.submit({
+          user_id: req.user.user_id,
+          task_id,
+          code,
+          language: language || "javascript",
+          execution_time,
+          result,
+          score: score || 0,
+          is_correct: !!is_correct,
+        });
+        res.status(201).json({ data: { ...saved, anonymous: false } });
+        return;
+      }
+
       res.status(201).json({
         data: {
           solution_id: Date.now(),
@@ -75,12 +43,25 @@ export class SolutionController {
     }
   };
 
-  // Публичный: получить тесты для задачи (чтобы клиент мог их прогнать локально)
   getByTask = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const taskId = parseInt(req.params.taskId, 10);
       const items = await this.solutions.listByTask(taskId);
       res.json({ data: items });
+    } catch (e) {
+      next(e);
+    }
+  };
+
+  getUserSolutions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.user_id;
+      if (!userId) {
+        res.json({ data: [] });
+        return;
+      }
+      const solutions = await this.solutions.listByUser(userId);
+      res.json({ data: solutions });
     } catch (e) {
       next(e);
     }

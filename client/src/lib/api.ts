@@ -9,6 +9,14 @@ export const api: AxiosInstance = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("algo.auth.token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 interface RetryCfg extends InternalAxiosRequestConfig {
   __retry?: number;
 }
@@ -41,7 +49,11 @@ api.interceptors.response.use(
     const msg =
       err.response?.data?.error?.message ??
       (status === undefined ? "Нет соединения с сервером" : `Ошибка ${status}`);
-    if (status !== 401 && status !== 429) toast.error(msg);
+    if (status === 401) {
+      localStorage.removeItem("algo.auth.token");
+    } else if (status !== 429) {
+      toast.error(msg);
+    }
     return Promise.reject(err);
   }
 );

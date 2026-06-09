@@ -1,6 +1,6 @@
-import { UserRole, DifficultyLevel, QuestionType } from "@prisma/client";
+import { DifficultyLevel, QuestionType } from "@prisma/client";
 
-export type { UserRole, DifficultyLevel, QuestionType };
+export type { DifficultyLevel, QuestionType };
 
 export interface PaginationParams {
   page: number;
@@ -19,35 +19,4 @@ export interface PaginatedResponse<T> {
 
 export interface ApiResponse<T> {
   data: T;
-}
-
-export interface JwtPayload {
-  user_id: number;
-  username: string;
-  email: string;
-  role: UserRole;
-  iat?: number;
-  exp?: number;
-}
-
-export interface RegisterRequest {
-  username: string;
-  email: string;
-  password: string;
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  user: {
-    user_id: number;
-    username: string;
-    email: string;
-    role: UserRole;
-  };
-  token: string;
-  expiresIn: string;
 }

@@ -2,7 +2,6 @@ import express, { Application, Request, Response } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import compression from "compression";
-import cookieParser from "cookie-parser";
 import http from "http";
 
 import { config } from "./config/env";
@@ -12,8 +11,8 @@ import { openApiSpec } from "./config/openapi";
 
 import { requestIdMiddleware, errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { generalRateLimiter } from "./middleware/rateLimit";
+import { verifyToken } from "./middleware/auth";
 
-import { UserRepository } from "./repositories/UserRepository";
 import { AlgorithmRepository } from "./repositories/AlgorithmRepository";
 import { TestAttemptRepository } from "./repositories/TestAttemptRepository";
 import { UserSolutionRepository } from "./repositories/UserSolutionRepository";
@@ -27,7 +26,6 @@ import { SolutionController } from "./controllers/SolutionController";
 import { ProgressController } from "./controllers/ProgressController";
 import { AIController } from "./controllers/AIController";
 import { ExecuteController } from "./controllers/ExecuteController";
-import { AdminController } from "./controllers/AdminController";
 import { TheoryController } from "./controllers/TheoryController";
 
 import { createAuthRouter } from "./routes/auth.routes";
@@ -36,7 +34,6 @@ import { createTestRouter } from "./routes/test.routes";
 import { createSolutionRouter } from "./routes/solution.routes";
 import { createProgressRouter } from "./routes/progress.routes";
 import { createAIRouter } from "./routes/ai.routes";
-import { createAdminRouter } from "./routes/admin.routes";
 import { createTheoryRouter } from "./routes/theory.routes";
 import { createExecuteRouter } from "./routes/execute.routes";
 
@@ -46,25 +43,23 @@ const VERSION = "1.0.0";
 export function buildApp(): Application {
   const app = express();
 
+  // Services
+  const authService = new AuthService();
+
   // Repositories
-  const userRepo = new UserRepository(prisma);
   const algoRepo = new AlgorithmRepository(prisma);
   const attemptRepo = new TestAttemptRepository(prisma);
   const solutionRepo = new UserSolutionRepository(prisma);
   const progressRepo = new ProgressRepository(prisma);
 
-  // Services
-  const authService = new AuthService(userRepo);
-
   // Controllers
   const authController = new AuthController(authService);
   const algoController = new AlgorithmController(algoRepo);
   const testController = new TestController(prisma);
-  const solController = new SolutionController(solutionRepo, progressRepo);
+  const solController = new SolutionController(solutionRepo);
   const progController = new ProgressController(progressRepo);
   const aiController = new AIController();
   const executeController = new ExecuteController();
-  const adminController = new AdminController(userRepo, algoRepo);
   const theoryController = new TheoryController();
 
   // ============ MIDDLEWARE ============
@@ -79,14 +74,16 @@ export function buildApp(): Application {
         useDefaults: true,
         directives: {
           "default-src": ["'self'"],
-          "script-src": ["'self'"],
+          "script-src": ["'self'", "'unsafe-eval'", "'unsafe-inline'"],
           "style-src": ["'self'", "'unsafe-inline'"],
           "img-src": ["'self'", "data:", "https:"],
+          "font-src": ["'self'", "data:", "https:"],
           "connect-src": ["'self'"],
+          "worker-src": ["'self'", "blob:"],
         },
       },
       crossOriginOpenerPolicy: { policy: "same-origin" },
-      crossOriginEmbedderPolicy: { policy: "require-corp" },
+      crossOriginEmbedderPolicy: false,
       hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
     })
   );
@@ -103,11 +100,9 @@ export function buildApp(): Application {
   app.use(compression());
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
-  app.use(cookieParser());
 
   app.use(generalRateLimiter);
 
-  // Request logging
   app.use((req: Request, _res: Response, next) => {
     logger.http(`${req.method} ${req.path}`, {
       ip: req.ip,
@@ -130,15 +125,18 @@ export function buildApp(): Application {
     });
   });
 
-  // ============ API ROUTES (все публичные) ============
+  // ============ AUTH ============
+  app.use(verifyToken);
+
   app.use("/api/auth", createAuthRouter(authController));
+
+  // ============ API ROUTES ============
   app.use("/api/algorithms", createAlgorithmRouter(algoController));
   app.use("/api/tests", createTestRouter(testController, aiController));
   app.use("/api/solutions", createSolutionRouter(solController));
   app.use("/api/progress", createProgressRouter(progController));
   app.use("/api/ai", createAIRouter(aiController));
   app.use("/api/execute", createExecuteRouter(executeController));
-  app.use("/api/admin", createAdminRouter(adminController));
   app.use("/api/theory", createTheoryRouter(theoryController));
 
   // ============ DOCS (simple OpenAPI 3.0) ============

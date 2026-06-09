@@ -6,11 +6,11 @@ import { progressUpdateSchema } from "../validators/schemas";
 export function createProgressRouter(controller: ProgressController): Router {
   const router = Router();
 
-  router.get("/", controller.getAllPublic);
+  router.get("/", controller.getAll);
   router.put(
     "/:algorithmId",
     validate(progressUpdateSchema),
-    controller.updatePublic
+    controller.update
   );
 
   return router;

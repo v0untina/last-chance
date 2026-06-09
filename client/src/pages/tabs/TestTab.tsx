@@ -11,6 +11,7 @@ import { api, extractErrorMessage } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import type { Algorithm, Question, QuestionType, Option } from "@/types/api";
 import toast from "react-hot-toast";
+import { useProgress } from "@/stores/progress";
 
 interface TestDetail {
   test_id: number;
@@ -111,7 +112,11 @@ export default function TestTab() {
       const { data } = await api.post<{ data: SubmitResult }>(`/tests/${test.test_id}/submit`, { answers: payload });
       setResult(data.data);
       setPhase("result");
-      if (data.data.passed) toast.success(t("test.passed"));
+      if (data.data.passed) {
+        useProgress.getState().markSection(algo.slug, "test", data.data.score);
+        api.put(`/progress/${algo.algorithm_id}`, { test_completed: true, score_percent: data.data.percent }).catch(() => {});
+        toast.success(t("test.passed"));
+      }
     } catch (e) {
       toast.error(extractErrorMessage(e, t("common.error")));
     } finally {

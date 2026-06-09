@@ -18,7 +18,7 @@ export class AlgorithmController {
       const result = await this.repo.findMany(
         { category, difficulty, search },
         { page, limit },
-        undefined
+        req.user?.user_id
       );
       res.json(result);
     } catch (e) {
@@ -30,7 +30,7 @@ export class AlgorithmController {
     try {
       const id = parseInt(req.params.id, 10);
       if (isNaN(id)) throw new NotFoundError("Алгоритм");
-      const algo = await this.repo.findById(id, undefined);
+      const algo = await this.repo.findById(id, req.user?.user_id);
       if (!algo) throw new NotFoundError("Алгоритм");
       res.json({ data: algo });
     } catch (e) {

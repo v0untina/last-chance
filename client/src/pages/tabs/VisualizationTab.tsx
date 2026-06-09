@@ -217,11 +217,8 @@ export default function VisualizationTab() {
                 onChange={(e) => {
                   const idx = Number(e.target.value) - 1;
                   if (idx >= 0 && ctrlRef.current) {
-                    ctrlRef.current.pause(); setPlaying(false);
-                    // Move to step by playing forward (or implement direct seek)
-                    const diff = idx - ctrlRef.current.currentIndex();
-                    if (diff > 0) for (let i = 0; i < diff; i++) ctrlRef.current.stepForward();
-                    else for (let i = 0; i < -diff; i++) ctrlRef.current.stepBackward();
+                    setPlaying(false);
+                    ctrlRef.current.seekTo(idx);
                   }
                 }}
                 className="w-full accent-accent mb-3"

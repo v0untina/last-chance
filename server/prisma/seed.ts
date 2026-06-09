@@ -1,47 +1,13 @@
 /* eslint-disable no-console */
-import { PrismaClient, UserRole, DifficultyLevel, QuestionType } from "@prisma/client";
-import bcrypt from "bcrypt";
+import { PrismaClient, DifficultyLevel, QuestionType } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const BCRYPT_ROUNDS = 10;
-
 async function main(): Promise<void> {
-  console.log("🌱 Starting seed...");
+  console.log("🌱 Starting seed (guest mode, no users)...");
 
   // ============================================================
-  // 1. USERS — admin
-  // ============================================================
-  console.log("👤 Creating admin user...");
-  const adminPasswordHash = await bcrypt.hash("admin123", BCRYPT_ROUNDS);
-  const admin = await prisma.user.upsert({
-    where: { email: "admin@example.com" },
-    update: {},
-    create: {
-      username: "admin",
-      email: "admin@example.com",
-      password_hash: adminPasswordHash,
-      role: UserRole.admin,
-    },
-  });
-  console.log(`  ✓ Admin: ${admin.username} (id=${admin.user_id})`);
-
-  // Демо-студент для тестов
-  const studentPasswordHash = await bcrypt.hash("student123", BCRYPT_ROUNDS);
-  const student = await prisma.user.upsert({
-    where: { email: "student@example.com" },
-    update: {},
-    create: {
-      username: "student",
-      email: "student@example.com",
-      password_hash: studentPasswordHash,
-      role: UserRole.student,
-    },
-  });
-  console.log(`  ✓ Student: ${student.username} (id=${student.user_id})`);
-
-  // ============================================================
-  // 2. ALGORITHMS (4 шт.)
+  // 1. ALGORITHMS (4 шт.)
   // ============================================================
   console.log("📊 Creating algorithms...");
   const algorithmsData = [

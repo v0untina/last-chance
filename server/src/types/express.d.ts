@@ -1,15 +1,15 @@
-export interface AuthenticatedUser {
-  user_id: number;
-  username: string;
-  email: string;
-  role: "student" | "teacher" | "admin";
-}
+import "express";
 
 declare global {
   namespace Express {
+    interface UserContext {
+      user_id: number;
+      username: string;
+      email: string;
+    }
+
     interface Request {
-      user?: AuthenticatedUser;
-      requestId?: string;
+      user?: UserContext;
     }
   }
 }

@@ -21,7 +21,7 @@ export interface AIResponse {
 export interface QuizQuestion {
   question_text: string;
   question_type: "single_choice" | "multiple_choice" | "short_answer";
-  options?: Array<{ text: string; is_correct: boolean }>;
+  options?: Array<{ text: string; is_correct: boolean; explanation?: string }>;
   correct_answer?: string;
   explanation?: string;
 }

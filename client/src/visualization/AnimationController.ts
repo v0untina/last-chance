@@ -89,6 +89,16 @@ export class AnimationController {
     }
   }
 
+  seekTo(index: number) {
+    if (this.steps.length === 0) return;
+    const clamped = Math.max(0, Math.min(this.steps.length - 1, Math.floor(index)));
+    this.pause();
+    this.finished = clamped >= this.steps.length - 1;
+    this.index = clamped;
+    this.renderer.draw(this.steps[this.index]);
+    this.onChange(this.steps[this.index], this.index);
+  }
+
   setSpeed(s: number) {
     this.speed = Math.max(0.25, Math.min(4, s));
   }

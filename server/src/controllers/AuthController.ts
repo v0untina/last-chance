@@ -1,36 +1,37 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/AuthService";
-import { LoginRequest, RegisterRequest } from "../types";
-import { UnauthorizedError } from "../utils/errors";
 
 export class AuthController {
-  constructor(private service: AuthService) {}
+  constructor(private auth: AuthService) {}
 
-  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  register = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = req.body as RegisterRequest;
-      const result = await this.service.register(data);
+      const { username, email, password } = req.body;
+      const result = await this.auth.register(username, email, password);
       res.status(201).json({ data: result });
     } catch (e) {
       next(e);
     }
   };
 
-  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  login = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = req.body as LoginRequest;
-      const result = await this.service.login(data);
+      const { email, password } = req.body;
+      const result = await this.auth.login(email, password);
       res.json({ data: result });
     } catch (e) {
       next(e);
     }
   };
 
-  me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getMe = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) throw new UnauthorizedError();
-      const result = await this.service.me(req.user.user_id);
-      res.json({ data: result });
+      if (!req.user) {
+        res.json({ data: null });
+        return;
+      }
+      const user = await this.auth.getUserById(req.user.user_id);
+      res.json({ data: user });
     } catch (e) {
       next(e);
     }

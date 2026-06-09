@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Search, X, SearchX } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Algorithm, Difficulty, Paginated } from "@/types/api";
+import { useProgress } from "@/stores/progress";
 
 export default function CatalogPage() {
   const { t } = useTranslation();
@@ -61,13 +62,19 @@ export default function CatalogPage() {
     [data]
   );
 
+  const progressBySlug = useProgress((s) => s.bySlug);
   const filtered = useMemo(() => {
     let list = debounced ? fuse.search(debounced).map((r) => r.item) : data;
     if (category) list = list.filter((a) => a.category === category);
     if (difficulty) list = list.filter((a) => a.difficulty === (difficulty as Difficulty));
-    if (completed === "1") list = list.filter((a) => a.progress?.theory_completed && a.progress?.test_completed);
+    if (completed === "1") {
+      list = list.filter((a) => {
+        const p = progressBySlug[a.slug];
+        return !!p && p.theory_completed && p.test_completed;
+      });
+    }
     return list;
-  }, [data, debounced, fuse, category, difficulty, completed]);
+  }, [data, debounced, fuse, category, difficulty, completed, progressBySlug]);
 
   const reset = () => {
     setSearch(""); setDebounced(""); setCategory(""); setDifficulty(""); setCompleted("");

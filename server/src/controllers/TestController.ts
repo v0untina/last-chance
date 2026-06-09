@@ -116,16 +116,20 @@ export class TestController {
     }
   };
 
-  // Старая сигнатура: создать attempt (теперь без auth, под guest user_id=1)
   startAttempt = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const testId = parseInt(req.params.id, 10);
       if (isNaN(testId)) throw new NotFoundError("Тест");
+      const userId = req.user?.user_id;
+      if (!userId) {
+        res.status(201).json({ data: { attempt_id: Date.now(), test_id: testId, anonymous: true } });
+        return;
+      }
       const test = await this.prisma.test.findUnique({ where: { test_id: testId }, include: { questions: true } });
       if (!test) throw new NotFoundError("Тест");
       const maxScore = test.questions.length;
       const attempt = await this.prisma.testAttempt.create({
-        data: { test_id: testId, user_id: 1, status: AttemptStatus.in_progress, max_score: maxScore, score: 0, passed: false },
+        data: { test_id: testId, user_id: userId, status: AttemptStatus.in_progress, max_score: maxScore, score: 0, passed: false },
       });
       res.status(201).json({ data: attempt });
     } catch (e) {

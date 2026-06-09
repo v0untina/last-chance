@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const registerSchema = z.object({
-  username: z.string().min(3).max(100).regex(/^[a-zA-Z0-9_]+$/, "Только буквы, цифры и _"),
+  username: z.string().min(3).max(100).regex(/^[a-zA-Z0-9_\u0400-\u04FF]+$/, "Только буквы, цифры и _"),
   email: z.string().email().max(150),
   password: z.string().min(8).max(100),
 });
@@ -87,10 +87,6 @@ export const algorithmCreateSchema = z.object({
   description: z.string().optional(),
   time_complexity: z.string().max(50).optional(),
   space_complexity: z.string().max(50).optional(),
-});
-
-export const updateRoleSchema = z.object({
-  role: z.enum(["student", "teacher", "admin"]),
 });
 
 export const progressUpdateSchema = z.object({

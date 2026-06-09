@@ -1,58 +1,89 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/stores/auth";
+import { extractErrorMessage } from "@/lib/api";
+import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Card, CardBody, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
-import { extractErrorMessage } from "@/lib/api";
-import toast from "react-hot-toast";
 
 export default function RegisterPage() {
-  const { t } = useTranslation();
-  const { register, loading } = useAuth();
   const navigate = useNavigate();
+  const register = useAuth((s) => s.register);
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ username?: string; email?: string; password?: string }>({});
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errs: typeof errors = {};
-    if (username.length < 3) errs.username = t("auth.validation.username_min");
-    if (!email) errs.email = t("auth.validation.email_required");
-    if (password.length < 8) errs.password = t("auth.validation.password_min");
-    setErrors(errs);
-    if (Object.keys(errs).length) return;
+    setError("");
+    if (password.length < 8) {
+      setError("Пароль должен быть минимум 8 символов");
+      return;
+    }
+    setSubmitting(true);
     try {
       await register(username, email, password);
-      toast.success("Аккаунт создан!");
-      navigate("/catalog");
-    } catch (e) {
-      toast.error(extractErrorMessage(e, "Не удалось создать аккаунт"));
+      navigate("/progress");
+    } catch (err) {
+      setError(extractErrorMessage(err, "Ошибка регистрации"));
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto pt-8">
-      <Card>
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{t("auth.register_title")}</CardTitle>
-          <CardDescription>Создайте бесплатный аккаунт</CardDescription>
+          <CardTitle>Регистрация</CardTitle>
         </CardHeader>
         <CardBody>
-          <form onSubmit={onSubmit} className="space-y-4" noValidate>
-            <Input label={t("auth.username")} value={username} onChange={(e) => setUsername(e.target.value)} error={errors.username} required />
-            <Input label={t("auth.email")} type="email" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} required />
-            <Input label={t("auth.password")} type="password" value={password} onChange={(e) => setPassword(e.target.value)} error={errors.password} required />
-            <Button type="submit" loading={loading} className="w-full">{t("auth.submit_register")}</Button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="text-sm text-danger bg-danger/10 rounded-lg px-3 py-2">{error}</div>
+            )}
+            <div>
+              <label className="text-sm font-medium block mb-1">Имя пользователя</label>
+              <Input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="username"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">Email</label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">Пароль</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Минимум 8 символов"
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? "Регистрация…" : "Зарегистрироваться"}
+            </Button>
+            <p className="text-sm text-center text-fg-muted">
+              Уже есть аккаунт?{" "}
+              <Link to="/login" className="text-accent hover:underline">
+                Войти
+              </Link>
+            </p>
           </form>
-          <p className="text-sm text-fg-muted mt-4 text-center">
-            {t("auth.have_account")}{" "}
-            <Link to="/login" className="text-accent hover:underline">{t("nav.login")}</Link>
-          </p>
         </CardBody>
       </Card>
     </div>

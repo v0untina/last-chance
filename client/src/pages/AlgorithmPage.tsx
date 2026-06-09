@@ -5,9 +5,9 @@ import { BookOpen, Code2, ClipboardCheck, PlayCircle, ArrowLeft } from "lucide-r
 import { api, extractErrorMessage } from "@/lib/api";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { Badge } from "@/components/ui/Badge";
-import { Tabs } from "@/components/ui/Tabs";
 import { cn } from "@/lib/cn";
 import type { Algorithm } from "@/types/api";
+import { useProgress } from "@/stores/progress";
 
 type Tab = "theory" | "visualization" | "test" | "practice";
 
@@ -89,7 +89,7 @@ export default function AlgorithmPage() {
 
 function ProgressBar({ algo }: { algo: Algorithm }) {
   const { t } = useTranslation();
-  const p = algo.progress;
+  const p = useProgress((s) => s.bySlug[algo.slug]);
   const items = [
     { done: p?.theory_completed, label: t("algorithm.theory_completed") },
     { done: p?.test_completed, label: t("algorithm.test_completed") },

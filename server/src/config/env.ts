@@ -12,9 +12,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   SHADOW_DATABASE_URL: z.string().optional(),
 
-  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 chars"),
+  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters").default("change-me-to-a-real-secret-in-production!!"),
   JWT_EXPIRES_IN: z.string().default("7d"),
-  BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(10),
 
   OPENAI_API_KEY: z.string().default(""),
   OPENAI_MODEL: z.string().default("gpt-4o-mini"),

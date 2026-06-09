@@ -6,30 +6,8 @@
   "nav": {
     "catalog": "Каталог",
     "progress": "Прогресс",
-    "admin": "Админка",
-    "login": "Войти",
-    "register": "Регистрация",
-    "logout": "Выйти",
     "theme": "Тема",
     "language": "Язык"
-  },
-  "auth": {
-    "login_title": "Вход в аккаунт",
-    "register_title": "Создать аккаунт",
-    "email": "Email",
-    "username": "Имя пользователя",
-    "password": "Пароль",
-    "submit_login": "Войти",
-    "submit_register": "Зарегистрироваться",
-    "no_account": "Нет аккаунта?",
-    "have_account": "Уже есть аккаунт?",
-    "session_expired": "Сессия истекла. Войдите снова.",
-    "invalid_credentials": "Неверный email или пароль",
-    "validation": {
-      "email_required": "Введите email",
-      "password_min": "Пароль должен быть не короче 8 символов",
-      "username_min": "Имя пользователя — минимум 3 символа"
-    }
   },
   "catalog": {
     "title": "Каталог алгоритмов",
@@ -145,26 +123,6 @@
       "avg_score": "Средний балл"
     },
     "empty": "У вас пока нет прогресса. Начните с каталога."
-  },
-  "admin": {
-    "title": "Администрирование",
-    "algorithms_tab": "Алгоритмы",
-    "users_tab": "Пользователи",
-    "create": "Создать",
-    "edit": "Редактировать",
-    "delete": "Удалить",
-    "save": "Сохранить",
-    "cancel": "Отмена",
-    "name": "Название",
-    "slug": "URL-slug",
-    "category": "Категория",
-    "difficulty": "Сложность",
-    "description": "Описание",
-    "time_complexity": "Время работы",
-    "space_complexity": "Память",
-    "content": "Содержимое",
-    "export_csv": "Экспорт CSV",
-    "export_pdf": "Экспорт PDF"
   },
   "common": {
     "loading": "Загрузка…",

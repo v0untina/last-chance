@@ -14,12 +14,6 @@ datasource db {
 
 // === ENUMS ===
 
-enum UserRole {
-  student
-  teacher
-  admin
-}
-
 enum DifficultyLevel {
   easy
   medium
@@ -46,17 +40,16 @@ model User {
   username      String   @unique @db.VarChar(100)
   email         String   @unique @db.VarChar(150)
   password_hash String   @db.VarChar(255)
-  role          UserRole @default(student)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
   progress    UserProgress[]
-  solutions   UserSolution[]
-  attempts    TestAttempt[]
-  ai_feedbacks AIFeedback[]
+  solutions      UserSolution[]
+  attempts       TestAttempt[]
+  ai_feedbacks   AIFeedback[]
+  quiz_attempts  QuizAttempt[]
 
   @@index([email])
-  @@index([role])
   @@map("users")
 }
 
@@ -269,4 +262,22 @@ model AIFeedback {
   @@index([prompt_type])
   @@index([created_at])
   @@map("ai_feedbacks")
+}
+
+model QuizAttempt {
+  attempt_id      Int      @id @default(autoincrement())
+  user_id         Int
+  algorithm_id    Int
+  material_id     Int
+  question_text   String   @db.Text
+  selected_answer String   @db.Text
+  correct_answer  String   @db.Text
+  is_correct      Boolean
+  created_at      DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id, algorithm_id])
+  @@index([user_id, material_id])
+  @@map("quiz_attempts")
 }

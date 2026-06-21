@@ -62,18 +62,23 @@ export abstract class BaseAIProvider implements IAIProvider {
     });
     const prompt: AIPrompt = {
       type: "generate_question",
-      systemPrompt: `Ты — педагог по алгоритмам. Сгенерируй 1 вопрос по теме с 4 вариантами. В каждом варианте дай развёрнутое объяснение (минимум 40 слов, объясни почему вариант правильный или нет, приведи пример). Формат: { question_text, options: [{ text, is_correct, explanation }], explanation: "общее резюме" }. Только JSON. Не повторяй предыдущий вопрос.`,
+      systemPrompt: `Ты — педагог по алгоритмам. Сгенерируй РОВНО 1 вопрос с одним правильным ответом и 4 вариантами. Вопрос должен проверять понимание ИМЕННО приведённого ниже материала модуля, а не алгоритма в целом. В каждом варианте дай краткое объяснение (1-2 предложения) — почему он верный или неверный. Верни СТРОГО валидный JSON без markdown и без текста вокруг, формат: {"question_text": "...", "options": [{"text": "...", "is_correct": true|false, "explanation": "..."}], "explanation": "краткое резюме"}. Ровно один вариант с is_correct=true. Не повторяй предыдущий вопрос.`,
       userContent: `Алгоритм: ${context.algorithmName}
-Тема: ${context.topic}
+Модуль (тема вопроса): ${context.topic}
 Сложность: ${context.difficulty}
-${context.previousQuestion ? `Предыдущий вопрос (не повторяй): ${context.previousQuestion}` : ""}`,
+${context.moduleContent ? `\nМатериал модуля (составь вопрос строго по нему):\n"""\n${context.moduleContent.slice(0, 1200)}\n"""` : ""}
+${context.previousQuestion ? `\nПредыдущий вопрос (не повторяй его): ${context.previousQuestion}` : ""}`,
       temperature: 0.8,
-      maxTokens: 400,
+      maxTokens: 1100,
       jsonMode: true,
     };
     const response = await this.callAI(prompt);
     try {
-      const parsed = JSON.parse(response.content) as QuizQuestion;
+      const cleaned = response.content
+        .trim()
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/i, "");
+      const parsed = JSON.parse(cleaned) as QuizQuestion;
       return parsed;
     } catch (e) {
       logger.error(`[${this.name}] Failed to parse question JSON`, { content: response.content });

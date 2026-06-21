@@ -263,6 +263,27 @@ COMMENT ON TABLE  ai_feedbacks               IS 'Логи AI-фидбека (п�
 COMMENT ON COLUMN ai_feedbacks.prompt_type   IS 'hint, code_review, generate_question, ...';
 COMMENT ON COLUMN ai_feedbacks.provider_used IS 'openai / gigachat';
 
+
+CREATE TABLE quiz_attempts (
+    attempt_id      SERIAL    PRIMARY KEY,
+    user_id         INTEGER   NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    algorithm_id    INTEGER   NOT NULL,
+    material_id     INTEGER   NOT NULL,
+    question_text   TEXT      NOT NULL,
+    selected_answer TEXT      NOT NULL,
+    correct_answer  TEXT      NOT NULL,
+    is_correct      BOOLEAN   NOT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_quiz_attempts_user_alg ON quiz_attempts(user_id, algorithm_id);
+CREATE INDEX idx_quiz_attempts_user_mat ON quiz_attempts(user_id, material_id);
+
+COMMENT ON TABLE  quiz_attempts               IS 'Попытки ответов на AI-генерированные вопросы по теории';
+COMMENT ON COLUMN quiz_attempts.question_text  IS 'Текст вопроса';
+COMMENT ON COLUMN quiz_attempts.selected_answer IS 'Ответ пользователя';
+COMMENT ON COLUMN quiz_attempts.correct_answer  IS 'Правильный ответ';
+
 -- =====================================================
 -- Включаем проверку FK обратно
 -- =====================================================

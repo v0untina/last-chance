@@ -31,6 +31,8 @@ export interface QuestionContext {
   topic: string;
   difficulty: "easy" | "medium" | "hard";
   previousQuestion?: string;
+  /** Текст конкретного модуля — чтобы вопрос был строго по его содержанию. */
+  moduleContent?: string;
 }
 
 export interface CodeAnalysis {

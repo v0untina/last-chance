@@ -28,9 +28,11 @@ export class AlgorithmController {
 
   getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const id = parseInt(req.params.id, 10);
-      if (isNaN(id)) throw new NotFoundError("Алгоритм");
-      const algo = await this.repo.findById(id, req.user?.user_id);
+      const param = req.params.id;
+      // Accept both numeric id (from catalog) and slug (from landing page links)
+      const algo = /^\d+$/.test(param)
+        ? await this.repo.findById(parseInt(param, 10), req.user?.user_id)
+        : await this.repo.findBySlug(param, req.user?.user_id);
       if (!algo) throw new NotFoundError("Алгоритм");
       res.json({ data: algo });
     } catch (e) {

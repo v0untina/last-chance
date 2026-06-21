@@ -4,7 +4,8 @@ import { BadRequestError } from "../utils/errors";
 import { logger } from "../config/logger";
 import { simulate, type TraceOp } from "../utils/algoSimulator";
 
-const PISTON_URL = "https://piston.codex.lol/api/v2/execute";
+// Канонический публичный Piston. Можно переопределить своим инстансом через PISTON_URL.
+const PISTON_URL = process.env.PISTON_URL || "https://emkc.org/api/v2/piston/execute";
 
 const LANG_MAP: Record<string, { language: string; version: string }> = {
   javascript: { language: "javascript", version: "18.15.0" },
@@ -64,10 +65,12 @@ export class ExecuteController {
         },
       });
     } catch (e: any) {
-      if (e?.code === "ENOTFOUND" || e?.code === "ECONNREFUSED" || e?.code === "ETIMEDOUT") {
+      const netCode = e?.code === "ENOTFOUND" || e?.code === "ECONNREFUSED" || e?.code === "ETIMEDOUT";
+      const httpErr = e?.response?.status; // внешний Piston вернул HTTP-ошибку (напр. 401 whitelist, 429, 5xx)
+      if (netCode || httpErr) {
         res.status(503).json({
           data: {
-            output: `Сервис компиляции недоступен (${e?.code}). Пожалуйста, попробуйте позже или используйте JavaScript.`,
+            output: `Внешний сервис выполнения кода (Piston) недоступен${httpErr ? ` (HTTP ${httpErr})` : ` (${e?.code})`}. Выполнение на ${"JavaScript"} доступно локально без внешних сервисов.`,
             runtime: 0,
             passed: false,
             error: "Сервис компиляции недоступен",

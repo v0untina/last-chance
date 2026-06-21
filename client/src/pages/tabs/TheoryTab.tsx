@@ -5,6 +5,7 @@ import confetti from "canvas-confetti";
 import { BookOpen, CheckCircle2, XCircle, Save, Sparkles, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Markdown } from "@/components/ui/Markdown";
 import { Textarea } from "@/components/ui/Input";
 import { api, extractErrorMessage } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -74,7 +75,7 @@ export default function TheoryTab() {
     selectedIndex: number | null;
     correctCount: number;
     status: "loading" | "answering" | "correct" | "wrong" | "passed";
-    prevQuestionText: string;
+    previousQuestions: string[];
     nextQuestion: AiQuestion | null;
     attempt: QuizAttemptStats | null;
   }>>({});
@@ -105,7 +106,7 @@ export default function TheoryTab() {
         selectedIndex: null,
         correctCount: prev[materialId]?.correctCount ?? 0,
         status: "loading",
-        prevQuestionText: "",
+        previousQuestions: prev[materialId]?.previousQuestions ?? [],
         nextQuestion: null,
       },
     }));
@@ -119,7 +120,7 @@ export default function TheoryTab() {
           selectedIndex: null,
           correctCount: prev[materialId]?.correctCount ?? 0,
           status: "answering",
-          prevQuestionText: data.data.question,
+          previousQuestions: prev[materialId]?.previousQuestions ?? [],
           nextQuestion: null,
         },
       }));
@@ -154,13 +155,15 @@ export default function TheoryTab() {
       [materialId]: { ...s, status: is_correct ? "correct" : "wrong", nextQuestion: null },
     }));
 
+    const allPrevQuestions = [...(s.previousQuestions ?? []), s.question.question];
+
     try {
       const { data } = await api.post(`/theory/${materialId}/check`, {
         is_correct,
         question_text,
         selected_answer,
         correct_answer,
-        previousQuestion: s.prevQuestionText,
+        previousQuestions: allPrevQuestions,
       });
 
       if (data.data.passed) {
@@ -191,19 +194,21 @@ export default function TheoryTab() {
   };
 
   const continueToNextQuestion = (materialId: number) => {
-    const s = quizData[materialId];
-    if (!s?.nextQuestion) return;
-    setQuizData((prev) => ({
-      ...prev,
-      [materialId]: {
-        question: s.nextQuestion!,
-        selectedIndex: null,
-        correctCount: s.correctCount,
-        status: "answering",
-        prevQuestionText: s.nextQuestion.question,
-        nextQuestion: null,
-      },
-    }));
+    setQuizData((prev) => {
+      const s = prev[materialId];
+      if (!s?.nextQuestion) return prev;
+      return {
+        ...prev,
+        [materialId]: {
+          question: s.nextQuestion,
+          selectedIndex: null,
+          correctCount: s.correctCount,
+          status: "answering",
+          previousQuestions: [...(s.previousQuestions ?? []), s.question.question],
+          nextQuestion: null,
+        },
+      };
+    });
   };
 
   const goTo = (idx: number) => {
@@ -310,7 +315,7 @@ export default function TheoryTab() {
               </CardHeader>
               <CardBody>
                 {m.type === "code" ? (
-                  <pre className="p-4 rounded-lg bg-[#0b0f19] text-[#e6e9ef] overflow-x-auto text-sm font-mono leading-relaxed"><code>{m.content}</code></pre>
+                  <pre className="p-4 rounded-lg bg-bg-subtle text-fg border border-border overflow-x-auto text-sm font-mono leading-relaxed"><code>{m.content}</code></pre>
                 ) : (
                   <div className="whitespace-pre-wrap leading-relaxed text-fg-muted">{m.content}</div>
                 )}
@@ -366,7 +371,7 @@ function QuizBlock({
     selectedIndex: number | null;
     correctCount: number;
     status: "loading" | "answering" | "correct" | "wrong" | "passed";
-    prevQuestionText: string;
+    previousQuestions: string[];
     nextQuestion: AiQuestion | null;
     attempt: QuizAttemptStats | null;
   };
@@ -472,14 +477,14 @@ function QuizBlock({
       {/* FEEDBACK BELOW */}
       {status === "correct" && (
         <div className="animate-fade-in space-y-3 rounded-xl border border-success/20 bg-success/[0.03] p-4">
-          <div className="flex items-center gap-2 text-success font-medium">
+          <div className="flex items-center gap-2 text-success font-semibold">
             <CheckCircle2 className="h-5 w-5" />
             <span>Верно!</span>
           </div>
-          {question.explanations?.[question.correctIndex] && (
-            <p className="text-sm text-fg-muted leading-relaxed">
-              {question.explanations[question.correctIndex]}
-            </p>
+          {(question.explanations?.[question.correctIndex] || question.explanation) && (
+            <div className="rounded-lg bg-success/5 border border-success/15 p-3 text-fg">
+              <Markdown text={question.explanations?.[question.correctIndex] || question.explanation} />
+            </div>
           )}
           {nextQuestion && (
             <Button size="sm" onClick={onContinue}>
@@ -491,28 +496,35 @@ function QuizBlock({
 
       {status === "wrong" && (
         <div className="animate-fade-in space-y-3 rounded-xl border border-danger/20 bg-danger/[0.03] p-4">
-          <div className="flex items-center gap-2 text-danger font-medium">
+          <div className="flex items-center gap-2 text-danger font-semibold">
             <XCircle className="h-5 w-5" />
             <span>Неправильно</span>
           </div>
-          <div className="space-y-2 text-sm text-fg-muted leading-relaxed">
-            <p>
-              <span className="text-danger font-medium">Ваш ответ:</span>{userChoice !== null ? ` ${question.options[userChoice]}` : " —"}
-            </p>
+
+          <div className="rounded-lg bg-danger/5 border border-danger/15 p-3 space-y-1.5">
+            <div className="flex items-start gap-2 text-sm">
+              <XCircle className="h-4 w-4 text-danger shrink-0 mt-0.5" />
+              <span><span className="font-medium text-danger">Ваш ответ:</span> {userChoice !== null ? question.options[userChoice] : "—"}</span>
+            </div>
             {question.explanations?.[userChoice!] && (
-              <div className="bg-danger/5 rounded-lg p-3">
-                {question.explanations[userChoice!]}
-              </div>
-            )}
-            <p className="pt-1">
-              <span className="text-success font-medium">Правильный ответ:</span> {question.options[question.correctIndex]}
-            </p>
-            {question.explanations?.[question.correctIndex] && (
-              <div className="bg-success/5 rounded-lg p-3">
-                {question.explanations[question.correctIndex]}
+              <div className="pl-6 text-fg-muted text-sm">
+                <Markdown text={question.explanations[userChoice!]} />
               </div>
             )}
           </div>
+
+          <div className="rounded-lg bg-success/5 border border-success/15 p-3 space-y-1.5">
+            <div className="flex items-start gap-2 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
+              <span><span className="font-medium text-success">Правильный ответ:</span> {question.options[question.correctIndex]}</span>
+            </div>
+            {(question.explanations?.[question.correctIndex] || question.explanation) && (
+              <div className="pl-6 text-fg text-sm">
+                <Markdown text={question.explanations?.[question.correctIndex] || question.explanation} />
+              </div>
+            )}
+          </div>
+
           {nextQuestion && (
             <Button size="sm" onClick={onContinue}>
               Попробовать новый вопрос →

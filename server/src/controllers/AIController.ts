@@ -22,18 +22,23 @@ export class AIController {
       const safeTemperature = Math.max(0, Math.min(2, Number(temperature) || 0.7));
       const safeMaxTokens = Math.max(50, Math.min(2000, Number(maxTokens) || 600));
 
+      // Тематический ограничитель: помощник отвечает только по алгоритмам/программированию
+      const TOPIC_GUARD = `Ты отвечаешь ИСКЛЮЧИТЕЛЬНО на вопросы об алгоритмах, структурах данных, программировании и теории информатики. Если вопрос не относится к этой теме (например, кулинария, погода, личные или бытовые темы), НЕ отвечай по существу, а вежливо откажись ровно одной фразой: "Я помогаю только с вопросами по алгоритмам и программированию." `;
+
       // System prompt зависит от типа задачи
       const systemPrompts: Record<string, string> = {
-        explain: `Ты — педагог по алгоритмам. Отвечай кратко (до 100 слов), по делу, без воды. Примеры — только если без них не понять. Пиши на русском.`,
-        analyze: `Ты — ревьюер кода. Найди баги, оцени сложность O(n), дай 1-2 конкретных исправления. Максимум 3 предложения. Пиши на русском.`,
-        hint: `Ты — учитель. Дай короткую подсказку (1-2 предложения), которая направит мысль, но не раскроет ответ. Пиши на русском.`,
+        explain: `Ты — педагог по алгоритмам. ${TOPIC_GUARD}Отвечай кратко (до 100 слов), по делу, без воды. Примеры — только если без них не понять. Пиши на русском.`,
+        analyze: `Ты — ревьюер кода. ${TOPIC_GUARD}Найди баги, оцени сложность O(n), дай 1-2 конкретных исправления. Максимум 3 предложения. Пиши на русском.`,
+        hint: `Ты — учитель. ${TOPIC_GUARD}Дай короткую подсказку (1-2 предложения), которая направит мысль, но не раскроет ответ. Пиши на русском.`,
         new_question: `Ты — автор тестов. Сгенерируй 1 вопрос строго в JSON. Никакого лишнего текста. Поля: question_text, question_type, options, correct_answer, explanation.`,
       };
 
       const systemPrompt = systemPrompts[type] ?? systemPrompts.explain;
       const userContent = type === "new_question" && context.algorithmName
         ? `Тема: ${context.algorithmName}\n${context.topic ? `Подтема: ${context.topic}` : ""}\n${context.difficulty ? `Сложность: ${context.difficulty}` : ""}\n${context.previousQuestion ? `Прошлый вопрос (не повторяй): ${context.previousQuestion}` : ""}\n\nСгенерируй новый вопрос.`
-        : prompt;
+        : context.algorithm
+          ? `Контекст: пользователь изучает алгоритм "${context.algorithm}".\n\nВопрос: ${prompt}`
+          : prompt;
 
       const aiPrompt: AIPrompt = {
         type: type === "new_question" ? "generate_question" : type === "hint" ? "hint" : type === "analyze" ? "analyze_code" : "explain_error",

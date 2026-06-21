@@ -12,6 +12,7 @@
   "catalog": {
     "title": "Algorithm catalog",
     "subtitle": "Learn interactively: theory, visualization, tests and practice",
+    "search_label": "Search",
     "search_placeholder": "Search by name…",
     "filter_category": "Category",
     "filter_difficulty": "Difficulty",
@@ -24,6 +25,12 @@
     "complexity": "Complexity",
     "time": "Time",
     "space": "Space"
+  },
+  "category": {
+    "sorting": "Sorting",
+    "searching": "Searching",
+    "data-structure": "Data structures",
+    "data-structures": "Data structures"
   },
   "difficulty": {
     "easy": "Easy",

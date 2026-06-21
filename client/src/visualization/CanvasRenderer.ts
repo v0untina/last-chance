@@ -66,6 +66,7 @@ function colorsFor(step: Step, index: number, sortedSet: Set<number>): BarColors
   if (type === "compare" && indices.includes(index)) return { fill: COLORS.compare, text: COLORS.compareText };
   if (type === "highlight" && indices.includes(index)) return { fill: COLORS.highlight, text: COLORS.highlightText };
   if (type === "set" && indices.includes(index)) return { fill: COLORS.active, text: COLORS.activeText };
+  if (type === "splice" && indices.includes(index)) return { fill: COLORS.swap, text: COLORS.swapText };
   if (sortedSet.has(index)) return { fill: COLORS.sorted, text: COLORS.sortedText };
   return { fill: COLORS.idle, text: COLORS.idleText };
 }
@@ -122,6 +123,14 @@ export class CanvasRenderer {
     this.ctx = ctx;
   }
 
+  private getThemeColor(variable: string, fallback: string): string {
+    try {
+      return getComputedStyle(document.documentElement).getPropertyValue(variable).trim() || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
   resize() {
     const rect = this.canvas.getBoundingClientRect();
     this.w = rect.width;
@@ -129,6 +138,12 @@ export class CanvasRenderer {
     this.canvas.width = Math.floor(this.w * this.dpr);
     this.canvas.height = Math.floor(this.h * this.dpr);
     this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+  }
+
+  finishCurrentAnimation() {
+    if (this.animating) {
+      this.finishAnimation();
+    }
   }
 
   clear() {
@@ -338,9 +353,11 @@ export class CanvasRenderer {
     ctx.save();
     ctx.globalAlpha = Math.min(1, this.explanationFade);
 
+    const bgBase = this.getThemeColor("--bg", "#0f172a");
+    const bgElev = this.getThemeColor("--bg-elev", "#1e293b");
     const bgGrad = ctx.createLinearGradient(padX, padY, padX, padY + 52);
-    bgGrad.addColorStop(0, "rgba(15, 23, 42, 0.92)");
-    bgGrad.addColorStop(1, "rgba(30, 41, 59, 0.95)");
+    bgGrad.addColorStop(0, bgBase + "e8");
+    bgGrad.addColorStop(1, bgElev + "f0");
     ctx.fillStyle = bgGrad;
 
     const radius = 10;
@@ -365,7 +382,7 @@ export class CanvasRenderer {
     ctx.fillText(icon, padX + 12, padY + 26);
 
     ctx.font = "600 12px Inter, system-ui, sans-serif";
-    ctx.fillStyle = "#e2e8f0";
+    ctx.fillStyle = this.getThemeColor("--fg-muted", "#e2e8f0");
     const textX = padX + 40;
     const maxTextW = maxW - 52;
 
@@ -386,10 +403,21 @@ export class CanvasRenderer {
     const statsX = this.w - 16;
     const statsY = 8;
 
-    ctx.fillStyle = "rgba(15, 23, 42, 0.8)";
+    const statsBg = this.getThemeColor("--bg", "#0f172a") + "cc";
+    ctx.fillStyle = statsBg;
     const statW = 140;
+    const sx = statsX - statW, sy = statsY, sw = statW, sh = 24, sr = 6;
     ctx.beginPath();
-    ctx.roundRect(statsX - statW, statsY, statW, 24, 6);
+    ctx.moveTo(sx + sr, sy);
+    ctx.lineTo(sx + sw - sr, sy);
+    ctx.arcTo(sx + sw, sy, sx + sw, sy + sr, sr);
+    ctx.lineTo(sx + sw, sy + sh - sr);
+    ctx.arcTo(sx + sw, sy + sh, sx + sw - sr, sy + sh, sr);
+    ctx.lineTo(sx + sr, sy + sh);
+    ctx.arcTo(sx, sy + sh, sx, sy + sh - sr, sr);
+    ctx.lineTo(sx, sy + sr);
+    ctx.arcTo(sx, sy, sx + sr, sy, sr);
+    ctx.closePath();
     ctx.fill();
 
     ctx.fillStyle = "#94a3b8";

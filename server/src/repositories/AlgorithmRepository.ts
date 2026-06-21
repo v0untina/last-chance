@@ -49,22 +49,29 @@ export class AlgorithmRepository {
     };
   }
 
+  private detailInclude(userId?: number) {
+    return {
+      theory_materials: { orderBy: { order_num: "asc" } },
+      tests: {
+        include: { questions: { include: { options: true }, orderBy: { order_num: "asc" } } },
+      },
+      tasks: { orderBy: { order_num: "asc" } },
+      progress: userId ? { where: { user_id: userId } } : false,
+    } satisfies Prisma.AlgorithmInclude;
+  }
+
   async findById(id: number, userId?: number) {
     return this.prisma.algorithm.findUnique({
       where: { algorithm_id: id },
-      include: {
-        theory_materials: { orderBy: { order_num: "asc" } },
-        tests: {
-          include: { questions: { include: { options: true }, orderBy: { order_num: "asc" } } },
-        },
-        tasks: { orderBy: { order_num: "asc" } },
-        progress: userId ? { where: { user_id: userId } } : false,
-      },
+      include: this.detailInclude(userId),
     });
   }
 
-  async findBySlug(slug: string) {
-    return this.prisma.algorithm.findUnique({ where: { slug } });
+  async findBySlug(slug: string, userId?: number) {
+    return this.prisma.algorithm.findUnique({
+      where: { slug },
+      include: this.detailInclude(userId),
+    });
   }
 
   async create(data: Prisma.AlgorithmCreateInput): Promise<Algorithm> {

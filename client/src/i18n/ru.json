@@ -12,6 +12,7 @@
   "catalog": {
     "title": "Каталог алгоритмов",
     "subtitle": "Изучайте алгоритмы интерактивно: теория, визуализация, тесты и практика",
+    "search_label": "Поиск",
     "search_placeholder": "Поиск по названию…",
     "filter_category": "Категория",
     "filter_difficulty": "Сложность",
@@ -24,6 +25,12 @@
     "complexity": "Сложность",
     "time": "Время",
     "space": "Память"
+  },
+  "category": {
+    "sorting": "Сортировка",
+    "searching": "Поиск",
+    "data-structure": "Структуры данных",
+    "data-structures": "Структуры данных"
   },
   "difficulty": {
     "easy": "Лёгкий",

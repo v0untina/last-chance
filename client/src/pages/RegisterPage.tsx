@@ -38,7 +38,7 @@ export default function RegisterPage() {
     <div className="flex items-center justify-center min-h-[60vh]">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Регистрация</CardTitle>
+          <CardTitle as="h1">Регистрация</CardTitle>
         </CardHeader>
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-4">

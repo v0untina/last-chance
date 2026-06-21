@@ -15,14 +15,18 @@ const sizes = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-2xl", xl: "max-w-4xl"
 
 export function Modal({ open, onClose, title, children, size = "md", footer }: ModalProps) {
   const ref = useRef<HTMLDivElement>(null);
+  // Keep latest onClose in a ref so the focus/overflow effect runs only on open/close,
+  // not on every parent re-render (a fresh onClose each render would steal focus on each keystroke).
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     ref.current?.focus();
     return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [open, onClose]);
+  }, [open]);
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" role="dialog" aria-modal="true">

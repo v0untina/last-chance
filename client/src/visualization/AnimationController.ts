@@ -66,12 +66,21 @@ export class AnimationController {
   currentIndex() { return this.index; }
   currentStep() { return this.steps[this.index] ?? null; }
 
+  /** Repaint the current step at the renderer's current size (e.g. after a resize). */
+  redraw() {
+    const step = this.steps[this.index];
+    if (!step) return;
+    this.renderer.draw(step);
+    this.renderer.finishCurrentAnimation();
+  }
+
   stepForward() {
     if (this.finished) return;
     this.pause();
     if (this.index < this.steps.length - 1) {
       this.index++;
       this.renderer.draw(this.steps[this.index]);
+      this.renderer.finishCurrentAnimation();
       this.onChange(this.steps[this.index], this.index);
     } else {
       this.finished = true;
@@ -85,6 +94,7 @@ export class AnimationController {
     if (this.index > 0) {
       this.index--;
       this.renderer.draw(this.steps[this.index]);
+      this.renderer.finishCurrentAnimation();
       this.onChange(this.steps[this.index], this.index);
     }
   }
@@ -96,6 +106,7 @@ export class AnimationController {
     this.finished = clamped >= this.steps.length - 1;
     this.index = clamped;
     this.renderer.draw(this.steps[this.index]);
+    this.renderer.finishCurrentAnimation();
     this.onChange(this.steps[this.index], this.index);
   }
 
@@ -129,7 +140,7 @@ export class AnimationController {
       }
     }
 
-    if (!stillAnimating) {
+    if (!stillAnimating && this.cooldown < stepMs) {
       this.renderer.tick(now);
     }
   };

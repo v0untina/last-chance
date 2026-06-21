@@ -8,7 +8,7 @@ import {
   BookOpen, Code2, Sparkles, Trophy, ArrowRight, BarChart3,
   Braces, Search, Shuffle, Layers, Rocket,
   ChevronDown, CheckCircle2, GraduationCap, Play,
-  Eye, Zap, Cpu,
+  Eye, Zap, Cpu, Gauge, ArrowLeftRight, ArrowUpDown,
 } from "lucide-react";
 
 const floatingShapes = [
@@ -41,7 +41,7 @@ const features = [
   {
     icon: <Code2 className="h-6 w-6" />,
     title: "Практика с проверкой",
-    desc: "Пишите код прямо в браузере. Запускайте тесты, проверяйте решения и получайте мгновенную обратную связь. 19 задач с автоматической проверкой.",
+    desc: "Пишите код прямо в браузере. Запускайте тесты, проверяйте решения и получайте мгновенную обратную связь. 29 задач с автоматической проверкой.",
     color: "from-rose-500/20 to-rose-500/5",
   },
 ];
@@ -78,6 +78,46 @@ const algorithms = [
     difficulty: "medium" as const,
     desc: "Эффективный алгоритм поиска элемента в отсортированном массиве путём последовательного деления диапазона поиска пополам.",
     complexity: "O(log n)",
+  },
+  {
+    icon: <Zap className="h-8 w-8" />,
+    name: "Быстрая сортировка",
+    slug: "quick-sort",
+    difficulty: "medium" as const,
+    desc: "Эффективный алгоритм, использующий принцип «разделяй и властвуй». Выбирает опорный элемент и разделяет массив на две части.",
+    complexity: "O(n log n)",
+  },
+  {
+    icon: <Layers className="h-8 w-8" />,
+    name: "Сортировка слиянием",
+    slug: "merge-sort",
+    difficulty: "medium" as const,
+    desc: "Стабильный алгоритм с гарантированной сложностью O(n log n). Рекурсивно делит массив пополам и сливает отсортированные половины.",
+    complexity: "O(n log n)",
+  },
+  {
+    icon: <Braces className="h-8 w-8" />,
+    name: "Пирамидальная сортировка",
+    slug: "heap-sort",
+    difficulty: "hard" as const,
+    desc: "Сортирует с помощью структуры «куча». Строит max-кучу, затем извлекает максимальные элементы один за другим.",
+    complexity: "O(n log n)",
+  },
+  {
+    icon: <ArrowUpDown className="h-8 w-8" />,
+    name: "Стек",
+    slug: "stack",
+    difficulty: "easy" as const,
+    desc: "Структура данных LIFO. Элементы добавляются и удаляются с одного конца (вершины). Используется в системных вызовах, обходе деревьев.",
+    complexity: "O(1)",
+  },
+  {
+    icon: <ArrowLeftRight className="h-8 w-8" />,
+    name: "Очередь",
+    slug: "queue",
+    difficulty: "easy" as const,
+    desc: "Структура данных FIFO. Элементы добавляются в конец и извлекаются из начала. Основа BFS, планировщиков задач, буферизации.",
+    complexity: "O(1)",
   },
 ];
 
@@ -124,9 +164,11 @@ export default function HomePage() {
   const { ref: stepsRef, inView: stepsInView } = useInView({ threshold: 0.1, once: true });
   const { ref: ctaRef, inView: ctaInView } = useInView({ threshold: 0.1, once: true });
 
-  const difficultyBadge = (d: "easy" | "medium") => (
-    <Badge tone={d === "easy" ? "success" : "warning"}>{d === "easy" ? "Начальный" : "Средний"}</Badge>
-  );
+  const difficultyBadge = (d: "easy" | "medium" | "hard") => {
+    const labels = { easy: "Начальный", medium: "Средний", hard: "Сложный" };
+    const tones = { easy: "success" as const, medium: "warning" as const, hard: "danger" as const };
+    return <Badge tone={tones[d]}>{labels[d]}</Badge>;
+  };
 
   return (
     <div className="overflow-hidden">
@@ -177,8 +219,8 @@ export default function HomePage() {
             </a>
           </div>
           <div className="mt-16 flex items-center justify-center gap-8 text-sm text-fg-muted">
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" />4 алгоритма</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" />19 задач</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" />7 алгоритмов</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" />2 структуры данных</span>
             <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" />AI-помощь</span>
           </div>
           <div className="mt-8 animate-bounce">
@@ -217,10 +259,10 @@ export default function HomePage() {
       <section id="algorithms" ref={algoRef} className="py-24 px-4 bg-bg-subtle">
         <div className="max-w-6xl mx-auto">
           <SectionTitle
-            title="Изучаемые алгоритмы"
-            subtitle="4 ключевых алгоритма с подробной теорией, визуализацией и практическими задачами"
+            title="Изучаемые алгоритмы и структуры данных"
+            subtitle="7 алгоритмов и 2 структуры данных с подробной теорией, визуализацией и практическими задачами"
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {algorithms.map((a, i) => (
               <Link
                 key={a.slug}
@@ -257,10 +299,10 @@ export default function HomePage() {
           />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { icon: <Braces className="h-6 w-6" />, end: 4, label: "Алгоритма", suffix: "" },
-              { icon: <BookOpen className="h-6 w-6" />, end: 24, label: "Блока теории", suffix: "" },
-              { icon: <Code2 className="h-6 w-6" />, end: 19, label: "Практических задач", suffix: "" },
-              { icon: <GraduationCap className="h-6 w-6" />, end: 23, label: "Тестовых вопроса", suffix: "" },
+              { icon: <Braces className="h-6 w-6" />, end: 9, label: "Тем для изучения", suffix: "" },
+              { icon: <BookOpen className="h-6 w-6" />, end: 111, label: "Блоков теории", suffix: "" },
+              { icon: <Code2 className="h-6 w-6" />, end: 29, label: "Практических задач", suffix: "" },
+              { icon: <GraduationCap className="h-6 w-6" />, end: 55, label: "Тестовых вопроса", suffix: "" },
             ].map((stat, i) => (
               <div
                 key={i}
@@ -293,7 +335,7 @@ export default function HomePage() {
                 <div
                   key={i}
                   className={`relative pl-0 sm:pl-20
-                    ${stepsInView ? `animate-fade-in-up animate-delay-${(i * 150)}` : "opacity-0"}`}
+                    ${stepsInView ? `animate-fade-in-up animate-delay-${(i * 100)}` : "opacity-0"}`}
                 >
                   <div className="absolute left-0 top-0 hidden sm:flex h-16 w-16 rounded-2xl bg-accent text-white items-center justify-center text-lg font-bold shadow-lg shadow-accent/20">
                     {i + 1}

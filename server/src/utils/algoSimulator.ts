@@ -94,7 +94,90 @@ function binarySearchTrace(input: number[], target: number): TraceOp[] {
   return steps;
 }
 
-export type SupportedSlug = "bubble-sort" | "insertion-sort" | "selection-sort" | "binary-search";
+function quickSortTrace(input: number[]): TraceOp[] {
+  const arr = clone(input);
+  const steps: TraceOp[] = [];
+  function qs(lo: number, hi: number): void {
+    if (lo >= hi) return;
+    const pivot = arr[hi];
+    let i = lo - 1;
+    for (let j = lo; j < hi; j++) {
+      if (!pushStep(steps, { type: "compare", indices: [j, hi], array: clone(arr) })) return;
+      if (arr[j] <= pivot) {
+        i++;
+        const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+        if (!pushStep(steps, { type: "swap", indices: [i, j], array: clone(arr) })) return;
+      }
+    }
+    if (i + 1 !== hi) {
+      const t = arr[i + 1]; arr[i + 1] = arr[hi]; arr[hi] = t;
+      if (!pushStep(steps, { type: "swap", indices: [i + 1, hi], array: clone(arr) })) return;
+    }
+    qs(lo, i);
+    qs(i + 2, hi);
+  }
+  qs(0, arr.length - 1);
+  return steps;
+}
+
+function mergeSortTrace(input: number[]): TraceOp[] {
+  const arr = clone(input);
+  const steps: TraceOp[] = [];
+  function ms(lo: number, hi: number): void {
+    if (lo >= hi) return;
+    const mid = (lo + hi) >> 1;
+    ms(lo, mid);
+    ms(mid + 1, hi);
+    const left = arr.slice(lo, mid + 1);
+    const right = arr.slice(mid + 1, hi + 1);
+    let i = 0, j = 0, k = lo;
+    while (i < left.length && j < right.length) {
+      if (!pushStep(steps, { type: "compare", indices: [lo + i, mid + 1 + j], array: clone(arr) })) return;
+      if (left[i] <= right[j]) {
+        arr[k++] = left[i++];
+      } else {
+        arr[k++] = right[j++];
+      }
+      if (!pushStep(steps, { type: "set", indices: [k - 1], array: clone(arr) })) return;
+    }
+    while (i < left.length) { arr[k++] = left[i++]; if (!pushStep(steps, { type: "set", indices: [k - 1], array: clone(arr) })) return; }
+    while (j < right.length) { arr[k++] = right[j++]; if (!pushStep(steps, { type: "set", indices: [k - 1], array: clone(arr) })) return; }
+  }
+  ms(0, arr.length - 1);
+  return steps;
+}
+
+function heapSortTrace(input: number[]): TraceOp[] {
+  const arr = clone(input);
+  const steps: TraceOp[] = [];
+  const n = arr.length;
+  function heapify(n: number, i: number): void {
+    let largest = i;
+    const l = 2 * i + 1, r = 2 * i + 2;
+    if (l < n) {
+      if (!pushStep(steps, { type: "compare", indices: [l, largest], array: clone(arr) })) return;
+      if (arr[l] > arr[largest]) largest = l;
+    }
+    if (r < n) {
+      if (!pushStep(steps, { type: "compare", indices: [r, largest], array: clone(arr) })) return;
+      if (arr[r] > arr[largest]) largest = r;
+    }
+    if (largest !== i) {
+      const t = arr[i]; arr[i] = arr[largest]; arr[largest] = t;
+      if (!pushStep(steps, { type: "swap", indices: [i, largest], array: clone(arr) })) return;
+      heapify(n, largest);
+    }
+  }
+  for (let i = Math.floor(n / 2) - 1; i >= 0; i--) heapify(n, i);
+  for (let i = n - 1; i > 0; i--) {
+    const t = arr[0]; arr[0] = arr[i]; arr[i] = t;
+    if (!pushStep(steps, { type: "swap", indices: [0, i], array: clone(arr) })) return steps;
+    heapify(i, 0);
+  }
+  return steps;
+}
+
+export type SupportedSlug = "bubble-sort" | "insertion-sort" | "selection-sort" | "binary-search" | "quick-sort" | "merge-sort" | "heap-sort";
 
 export function simulate(slug: string, input: number[], target?: number): TraceResult {
   try {
@@ -114,6 +197,15 @@ export function simulate(slug: string, input: number[], target?: number): TraceR
           return { steps: [], ok: false, error: "Для binary-search требуется target (число)" };
         }
         steps = binarySearchTrace(input, target);
+        break;
+      case "quick-sort":
+        steps = quickSortTrace(input);
+        break;
+      case "merge-sort":
+        steps = mergeSortTrace(input);
+        break;
+      case "heap-sort":
+        steps = heapSortTrace(input);
         break;
       default:
         return { steps: [], ok: false, error: `Алгоритм "${slug}" не поддерживается трассировкой` };

@@ -45,9 +45,9 @@ export default function ProgressPage() {
     : 0;
 
   const pieData = [
-    { name: t("progress.stats.completed"), value: completed.length, color: "#16a34a" },
-    { name: t("progress.stats.in_progress"), value: inProgress.length, color: "#f59e0b" },
-    { name: "Не начато", value: Math.max(0, data.length - completed.length - inProgress.length), color: "#94a3b8" },
+    { name: t("progress.stats.completed"), value: completed.length, color: "var(--success)" },
+    { name: t("progress.stats.in_progress"), value: inProgress.length, color: "var(--warning)" },
+    { name: "Не начато", value: Math.max(0, data.length - completed.length - inProgress.length), color: "var(--fg-subtle)" },
   ];
   const barData = data.map((d) => ({
     name: d.algorithm.name.length > 12 ? d.algorithm.name.slice(0, 12) + "…" : d.algorithm.name,

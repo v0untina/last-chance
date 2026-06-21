@@ -6,71 +6,48 @@ import { logger } from "../config/logger";
 
 const QUESTIONS_TO_PASS = 3;
 
-interface QuestionShape {
-  question: string;
-  options: string[];
-  correctIndex: number;
-  explanation: string;
-  explanations: string[];
+import { QuestionShape, getModuleQuestions } from "../data/fallbackQuestions";
+
+function fallbackQuestion(
+  algorithmSlug: string,
+  previousQuestions: string[] = [],
+): QuestionShape {
+  const pool = getModuleQuestions(algorithmSlug);
+  if (!pool || pool.length === 0) {
+    return {
+      question: `Вопрос по алгоритму недоступен.`,
+      options: ["Да", "Нет", "Затрудняюсь ответить", "Повторить"],
+      correctIndex: 0,
+      explanation: "Пожалуйста, обновите базу вопросов.",
+      explanations: ["", "", "", ""],
+    };
+  }
+  const filtered = previousQuestions.length > 0
+    ? pool.filter((q) => !previousQuestions.includes(q.question))
+    : pool;
+  const available = filtered.length > 0 ? filtered : pool;
+  return available[Math.floor(Math.random() * available.length)];
 }
 
-function fallbackQuestion(algorithmName: string): QuestionShape {
-  const qs = [
-    {
-      question: `Какова временная сложность алгоритма "${algorithmName}" в худшем случае?`,
-      options: ["O(n)", "O(n²)", "O(log n)", "O(1)"],
-      correctIndex: 1,
-      explanation: "Временная сложность зависит от конкретного алгоритма. Изучите раздел 'Сложность'.",
-      explanations: [
-        "O(n) — линейная сложность. Это неверно, потому что алгоритмы сортировки обычно выполняют больше операций, чем количество элементов. Например, пузырьковая сортировка делает n проходов по массиву, каждый проход сравнивает соседние элементы, и в худшем случае количество сравнений равно n * (n-1) / 2, что даёт квадратичную зависимость, а не линейную.",
-        "O(n²) — квадратичная сложность. Это верный ответ для большинства простых алгоритмов сортировки в худшем случае. Когда массив отсортирован в обратном порядке, каждый элемент приходится перемещать через всю последовательность, и количество операций растёт пропорционально квадрату размера массива.",
-        "O(log n) — логарифмическая сложность. Это неверно, такая характеристика свойственна бинарному поиску, где на каждом шаге область поиска сокращается вдвое. Алгоритмы сортировки требуют как минимум просмотра всех элементов, поэтому их сложность не может быть логарифмической.",
-        "O(1) — константная сложность. Это неверно, потому что время выполнения алгоритмов сортировки всегда зависит от размера входных данных. Даже в лучшем случае, когда массив уже отсортирован, алгоритму нужно хотя бы проверить порядок элементов, что требует линейного времени.",
-      ],
-    },
-    {
-      question: `Что из перечисленного лучше всего описывает принцип работы "${algorithmName}"?`,
-      options: [
-        "Разделяй и властвуй",
-        "Последовательное сравнение элементов",
-        "Сортировка вставками",
-        "Рекурсивный обход",
-      ],
-      correctIndex: 0,
-      explanation: "Изучите описание алгоритма в теоретическом блоке.",
-      explanations: [
-        "\"Разделяй и властвуй\" — верно. Этот принцип означает, что задача разбивается на несколько меньших подзадач того же типа, каждая решается независимо, а затем результаты объединяются. Например, быстрая сортировка выбирает опорный элемент, делит массив на две части относительно него и рекурсивно сортирует каждую часть.",
-        "Последовательное сравнение элементов — неверно. Это описание линейного поиска или простейшей сортировки вставками, где каждый элемент поочерёдно сравнивается с соседями. Данный алгоритм использует более сложную стратегию, основанную на рекурсивном делении данных на части.",
-        "Сортировка вставками — неверно. Это самостоятельный алгоритм, который строит отсортированный массив постепенно, вставляя каждый новый элемент на правильную позицию. Его сложность O(n²), но он не использует принцип разделения задачи на подзадачи, в отличие от нашего алгоритма.",
-        "Рекурсивный обход — неверно. Рекурсивный обход характерен для работы с деревьями и графами, где нужно посетить каждый узел. Хотя данный алгоритм может использовать рекурсию для деления массива, его ключевая идея — не просто обход, а именно разделение данных и последующее объединение.",
-      ],
-    },
-    {
-      question: `Какую структуру данных чаще всего используют в "${algorithmName}"?`,
-      options: ["Массив", "Связный список", "Дерево", "Хеш-таблица"],
-      correctIndex: 0,
-      explanation: "Алгоритм работает с последовательностью элементов, чаще всего с массивом.",
-      explanations: [
-        "Массив — верно. Массив обеспечивает произвольный доступ к любому элементу по индексу за O(1), что критически важно для алгоритма. Мы можем мгновенно получить элемент по любой позиции, менять элементы местами и сравнивать их. Без произвольного доступа эффективная реализация была бы невозможна.",
-        "Связный список — неверно. В связном списке нет произвольного доступа — чтобы получить элемент по индексу, нужно пройти по всем предыдущим узлам, что даёт O(n) на каждое обращение. Это сделало бы алгоритм чрезвычайно медленным, так как алгоритму приходится часто обращаться к элементам по разным индексам.",
-        "Дерево — неверно. Деревья используются для других задач, например, для бинарного поиска (двоичное дерево поиска) или представления иерархических данных. Данный алгоритм работает с плоской последовательностью элементов, где важен порядок следования, а не иерархическая структура.",
-        "Хеш-таблица — неверно. Хеш-таблицы обеспечивают быстрый поиск по ключу, но не поддерживают упорядоченное хранение элементов. Для алгоритмов сортировки критически важен порядок элементов и возможность сравнивать их относительно друг друга, что хеш-таблицы не обеспечивают.",
-      ],
-    },
-    {
-      question: `Для каких задач обычно применяется "${algorithmName}"?`,
-      options: ["Поиск элемента", "Сортировка данных", "Обход графа", "Сжатие данных"],
-      correctIndex: 1,
-      explanation: "Изучите практическое применение алгоритма в разделе 'Примеры'.",
-      explanations: [
-        "Поиск элемента — не основное назначение. Для поиска существуют специальные алгоритмы, такие как бинарный поиск для отсортированных массивов или поиск в глубину/ширину для графов. Данный алгоритм не предназначен для нахождения конкретного значения среди множества данных.",
-        "Сортировка данных — верно. Основная задача алгоритма — упорядочивание элементов массива по возрастанию или убыванию. Сортировка применяется повсеместно: от организации списка контактов до подготовки данных для бинарного поиска и оптимизации работы баз данных.",
-        "Обход графа — неверно. Обход графа выполняется алгоритмами BFS (поиск в ширину) и DFS (поиск в глубину). Эти алгоритмы используют очередь или стек для посещения узлов графа. Данный алгоритм работает только с линейными последовательностями, а не с графами.",
-        "Сжатие данных — неверно. Сжатие данных — это отдельная область алгоритмов, таких как Хаффман, LZW или арифметическое кодирование. Эти алгоритмы используют статистические закономерности для уменьшения объёма данных, что совершенно не связано с упорядочиванием элементов.",
-      ],
-    },
-  ];
-  return qs[Math.floor(Math.random() * qs.length)];
+/**
+ * Module-specific fallback built from the seeded per-module quiz (theory_materials.quiz).
+ * Used when AI generation fails — guarantees the question is about THIS module
+ * (and exists for every algorithm, unlike the algorithm-wide pool).
+ */
+function moduleQuizFallback(quiz: unknown, previousQuestions: string[] = []): QuestionShape | null {
+  if (!quiz || typeof quiz !== "object") return null;
+  const q = quiz as { question?: string; options?: string[]; correctIndex?: number; explanation?: string };
+  if (!q.question || !Array.isArray(q.options) || q.options.length < 2 || typeof q.correctIndex !== "number") {
+    return null;
+  }
+  if (previousQuestions.includes(q.question)) return null;
+  return {
+    question: q.question,
+    options: q.options,
+    correctIndex: q.correctIndex,
+    explanation: q.explanation ?? "",
+    explanations: q.options.map(() => ""),
+  };
 }
 
 export class TheoryController {
@@ -92,6 +69,7 @@ export class TheoryController {
           algorithmName: material.algorithm.name,
           topic: material.title,
           difficulty: "medium",
+          moduleContent: material.content,
         });
 
         if (aiQuestion?.question_text && aiQuestion.options?.length) {
@@ -104,11 +82,13 @@ export class TheoryController {
             explanations: aiQuestion.options.map((o) => o.explanation ?? ""),
           };
         } else {
-          question = fallbackQuestion(material.algorithm.name);
+          const slug = material.algorithm.slug || material.algorithm.name.toLowerCase().replace(/\s+/g, "-");
+          question = moduleQuizFallback(material.quiz) ?? fallbackQuestion(slug);
         }
       } catch (e) {
-        logger.warn("[TheoryController] AI generate failed, using fallback", { error: (e as Error).message });
-        question = fallbackQuestion(material.algorithm.name);
+        logger.warn("[TheoryController] AI generate failed, using module fallback", { error: (e as Error).message });
+        const slug = material.algorithm.slug || material.algorithm.name.toLowerCase().replace(/\s+/g, "-");
+        question = moduleQuizFallback(material.quiz) ?? fallbackQuestion(slug);
       }
 
       res.json({ data: question });
@@ -130,12 +110,12 @@ export class TheoryController {
       });
       if (!material) throw new NotFoundError("Theory material not found");
 
-      const { is_correct, question_text, selected_answer, correct_answer, previousQuestion } = req.body as {
+      const { is_correct, question_text, selected_answer, correct_answer, previousQuestions } = req.body as {
         is_correct: boolean;
         question_text: string;
         selected_answer: string;
         correct_answer: string;
-        previousQuestion?: string;
+        previousQuestions?: string[];
       };
 
       // Save the attempt
@@ -167,12 +147,14 @@ export class TheoryController {
 
       // Generate next question
       let nextQuestion: object | null = null;
+      const prevQs = previousQuestions ?? [];
       try {
         const aiQuestion = await aiFactory.generateQuestionWithFallback({
           algorithmName: material.algorithm.name,
           topic: material.title,
           difficulty: "medium",
-          previousQuestion,
+          previousQuestion: prevQs[prevQs.length - 1] ?? "",
+          moduleContent: material.content,
         });
 
         if (aiQuestion?.question_text && aiQuestion.options?.length) {
@@ -190,7 +172,8 @@ export class TheoryController {
       }
 
       if (!nextQuestion) {
-        const fb = fallbackQuestion(material.algorithm.name);
+        const slug = material.algorithm.slug || material.algorithm.name.toLowerCase().replace(/\s+/g, "-");
+        const fb = moduleQuizFallback(material.quiz, prevQs) ?? fallbackQuestion(slug, prevQs);
         nextQuestion = { ...fb };
       }
 

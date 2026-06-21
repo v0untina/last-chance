@@ -26,8 +26,9 @@ export class AuthController {
 
   getMe = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      // Защищённый эндпоинт: без валидного JWT возвращаем 401 (клиент трактует как «гость»).
       if (!req.user) {
-        res.json({ data: null });
+        res.status(401).json({ error: { message: "Требуется авторизация" } });
         return;
       }
       const user = await this.auth.getUserById(req.user.user_id);

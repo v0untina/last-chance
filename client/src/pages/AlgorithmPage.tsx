@@ -42,7 +42,7 @@ export default function AlgorithmPage() {
 
   if (loading) return <PageLoader label={t("common.loading")} />;
   if (error || !algo) {
-    return <div className="card p-6 text-center text-danger">{error ?? t("common.error")}</div>;
+    return <div className="card p-6 text-center text-danger">{error || t("common.error")}</div>;
   }
 
   return (

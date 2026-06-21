@@ -8,6 +8,7 @@ export default function NotFoundPage() {
   const { t } = useTranslation();
   return (
     <EmptyState
+      as="h1"
       icon={<FileQuestion className="h-16 w-16" />}
       title={t("common.not_found_title")}
       description={t("common.not_found_desc")}

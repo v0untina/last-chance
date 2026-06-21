@@ -17,8 +17,8 @@ export function CardFooter({ className, children, ...rest }: HTMLAttributes<HTML
   return <div className={cn("px-5 py-4 border-t border-border", className)} {...rest}>{children}</div>;
 }
 
-export function CardTitle({ children, className }: { children: ReactNode; className?: string }) {
-  return <h3 className={cn("text-base font-semibold text-fg", className)}>{children}</h3>;
+export function CardTitle({ children, className, as: Tag = "h3" }: { children: ReactNode; className?: string; as?: "h1" | "h2" | "h3" }) {
+  return <Tag className={cn("text-base font-semibold text-fg", className)}>{children}</Tag>;
 }
 
 export function CardDescription({ children, className }: { children: ReactNode; className?: string }) {

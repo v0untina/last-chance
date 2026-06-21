@@ -13,6 +13,14 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
     />
+    <script>
+      (function() {
+        var key = "algo.theme";
+        var saved = localStorage.getItem(key);
+        var dark = saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (dark) document.documentElement.classList.add("dark");
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

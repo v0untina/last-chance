@@ -126,7 +126,7 @@ export default function ProfilePage() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-5">
           <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-accent to-accent/70 text-white grid place-items-center text-3xl font-bold shadow-lg shadow-accent/20 shrink-0">
-            {user.username[0].toUpperCase()}
+            {(user.username?.[0] ?? "?").toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-4 flex-wrap">

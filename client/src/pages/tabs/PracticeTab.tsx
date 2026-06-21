@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Markdown } from "@/components/ui/Markdown";
 import { cn } from "@/lib/cn";
 import { engines, type EngineKey } from "@/visualization/engines";
 import type { Step } from "@/visualization/AlgorithmEngine";
@@ -21,8 +22,10 @@ import { templates } from "@/lib/templates";
 import type { Algorithm, DualAIResponse, ExecuteResult, TraceResponse } from "@/types/api";
 import type { WorkerRequest, WorkerResponse, TraceOp } from "@/workers/code-executor.worker";
 import { DiffView } from "@/components/DiffView";
+import { Modal } from "@/components/ui/Modal";
 import { api, extractErrorMessage } from "@/lib/api";
 import { useProgress } from "@/stores/progress";
+import { useTheme } from "@/stores/theme";
 
 loader.init().then((monaco) => {
   monaco.editor.defineTheme("algo-dark", {
@@ -43,12 +46,34 @@ loader.init().then((monaco) => {
       "editorCursor.foreground": "#4f46e5",
     },
   });
+  monaco.editor.defineTheme("algo-light", {
+    base: "vs", inherit: true,
+    rules: [
+      { token: "comment", foreground: "6a9955" },
+      { token: "keyword", foreground: "0000ff" },
+      { token: "string", foreground: "a31515" },
+      { token: "number", foreground: "098658" },
+      { token: "function", foreground: "795e26" },
+    ],
+    colors: {
+      "editor.background": "#ffffff",
+      "editor.foreground": "#0f172a",
+      "editor.lineHighlightBackground": "#f1f5f9",
+      "editorCursor.foreground": "#4f46e5",
+    },
+  });
 });
 
 function getEngineKey(slug: string): EngineKey {
   if (slug.includes("bubble")) return "bubble";
   if (slug.includes("insertion")) return "insertion";
   if (slug.includes("selection")) return "selection";
+  if (slug.includes("binary")) return "binary";
+  if (slug.includes("quick")) return "quick";
+  if (slug.includes("merge")) return "merge";
+  if (slug.includes("heap")) return "heap";
+  if (slug.includes("stack")) return "stack";
+  if (slug.includes("queue")) return "queue";
   return "binary";
 }
 
@@ -70,12 +95,22 @@ function traceToSteps(trace: TraceOp[]): Step[] {
   return steps;
 }
 
+// Hard wall-clock limit. Timers INSIDE the worker cannot interrupt a synchronous
+// infinite loop (single-threaded), so the main thread must terminate a stuck worker.
+const WORKER_HARD_TIMEOUT_MS = 6000;
+
 function runWorker(code: string, entryArg: unknown, trace = false): Promise<{ value: unknown; runtime: number; trace?: TraceOp[] }> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL("@/workers/code-executor.worker.ts", import.meta.url), { type: "module" });
     const id = Date.now();
+    const watchdog = setTimeout(() => {
+      worker.removeEventListener("message", onMsg);
+      worker.terminate();
+      reject(new Error(`Превышено время выполнения (${WORKER_HARD_TIMEOUT_MS / 1000} с). Возможен бесконечный цикл.`));
+    }, WORKER_HARD_TIMEOUT_MS);
     const onMsg = (e: MessageEvent<WorkerResponse>) => {
       if (e.data.id !== id) return;
+      clearTimeout(watchdog);
       worker.removeEventListener("message", onMsg);
       worker.terminate();
       if (e.data.type === "result") resolve({ value: e.data.value, runtime: e.data.runtime, trace: e.data.trace });
@@ -94,6 +129,9 @@ function getAlgorithmFnName(slug: string): string {
   if (slug.includes("bubble")) return "bubbleSort";
   if (slug.includes("insertion")) return "insertionSort";
   if (slug.includes("selection")) return "selectionSort";
+  if (slug.includes("quick")) return "quickSort";
+  if (slug.includes("merge")) return "mergeSort";
+  if (slug.includes("heap")) return "heapSort";
   return "binarySearch";
 }
 
@@ -103,6 +141,7 @@ const LANG_LABELS: Record<SupportedLanguage, string> = {
 
 export default function PracticeTab() {
   const { algo } = useOutletContext<{ algo: Algorithm }>();
+  const mode = useTheme((s) => s.mode);
   const engineKey = getEngineKey(algo.slug);
   const engine = engines[engineKey];
   const referenceCode = templates[algo.slug]?.javascript ?? "";
@@ -114,7 +153,7 @@ export default function PracticeTab() {
 
   const [showDiff, setShowDiff] = useState(false);
   const [showMetrics, setShowMetrics] = useState(false);
-  const [showAI, setShowAI] = useState(true);
+  const [showAI, setShowAI] = useState(false);
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiOpenAI, setAiOpenAI] = useState<string | null>(null);
@@ -162,9 +201,10 @@ export default function PracticeTab() {
 
     let execCode: string, entryArg: unknown;
     if (algo.slug === "binary-search") {
-      const target = (testInput as number[])[Math.floor((testInput as number[]).length / 2)];
-      execCode = `${codeToRun}\n\nreturn (a) => ${fnName}(a, ${target});`;
-      entryArg = testInput;
+      const sortedArray = [...arrayRef.current].sort((a, b) => a - b);
+      const targetValue = sortedArray[Math.floor(sortedArray.length / 2)];
+      execCode = `${codeToRun}\n\nreturn (a) => ${fnName}(a, ${targetValue});`;
+      entryArg = sortedArray;
     } else {
       execCode = `${codeToRun}\n\nreturn ${fnName};`;
       entryArg = testInput;
@@ -230,6 +270,7 @@ export default function PracticeTab() {
 
       if (result.passed) {
         if (result.trace && result.trace.length > 0 && rendererRef.current) {
+          ctrlRef.current?.pause();
           const steps = traceToSteps(result.trace);
           if (steps.length > 0) {
             const ctrl = new AnimationController(
@@ -289,9 +330,14 @@ export default function PracticeTab() {
     arrayRef.current = generateRandomArray(arraySize);
     const steps = engine.generateSteps([...arrayRef.current], engineKey === "binary" ? arrayRef.current[Math.floor(arrayRef.current.length / 2)] : undefined);
     loadSteps(steps);
-    const onResize = () => renderer.resize();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    // Re-fit the canvas whenever its box changes (e.g. AI panel / metrics appear and
+    // shrink the flex area). A plain window resize listener misses these layout shifts.
+    const ro = new ResizeObserver(() => {
+      renderer.resize();
+      ctrlRef.current?.redraw();
+    });
+    ro.observe(canvas);
+    return () => ro.disconnect();
   }, [engine, engineKey, loadSteps]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePlayPause = () => {
@@ -328,8 +374,10 @@ export default function PracticeTab() {
   };
 
   const traceOps = runResult?.trace ?? [];
-  const traceComparisons = traceOps.filter((t) => t.type !== "swap").length;
   const traceSwaps = traceOps.filter((t) => t.type === "swap").length;
+  const traceWrites = traceOps.filter((t) => t.type === "set").length;
+  const traceTotal = traceOps.length;
+  const hasTrace = !!runResult?.trace && traceTotal > 0;
 
   return (
     <div className="flex flex-col h-[calc(100vh-280px)] min-h-[500px] -mx-4 sm:mx-0">
@@ -385,16 +433,15 @@ export default function PracticeTab() {
           </div>
 
           <div className="flex-1 relative min-h-0">
-            {codeHasError ? (
-              <div className="absolute inset-0 flex items-center justify-center p-8">
+            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+            {codeHasError && (
+              <div className="absolute inset-0 flex items-center justify-center p-8 z-10">
                 <div className="text-center max-w-sm">
                   <AlertTriangle className="h-12 w-12 text-danger/60 mx-auto mb-3" />
                   <p className="text-sm font-medium text-danger mb-1">Код содержит ошибку</p>
                   <p className="text-xs text-fg-muted">Исправьте ошибки в коде, чтобы увидеть визуализацию алгоритма. Ниже показаны подсказки от ИИ.</p>
                 </div>
               </div>
-            ) : (
-              <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
             )}
           </div>
 
@@ -419,10 +466,10 @@ export default function PracticeTab() {
           )}
         </div>
 
-        <div className="w-1/2 flex flex-col bg-[#0b0f19]">
-          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[#1e293b] bg-[#0b0f19] shrink-0">
-            <Code2 className="h-3.5 w-3.5 text-[#569cd6]" />
-            <span className="text-xs font-medium text-[#e6e9ef]">Редактор ({LANG_LABELS[language]})</span>
+        <div className="w-1/2 flex flex-col bg-bg">
+          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border bg-bg-subtle shrink-0">
+            <Code2 className="h-3.5 w-3.5 text-accent" />
+            <span className="text-xs font-medium text-fg">Редактор ({LANG_LABELS[language]})</span>
             {runResult && (
               <span className={cn("text-[10px] font-mono ml-2", runResult.passed ? "text-success" : "text-danger")}>
                 {runResult.passed ? `✓ ${runResult.runtime}ms` : "✗ ошибка"}
@@ -438,7 +485,7 @@ export default function PracticeTab() {
               language={language === "cpp" ? "cpp" : language === "go" ? "go" : language}
               value={code}
               onChange={(v) => setCode(v ?? "")}
-              theme="algo-dark"
+              theme={mode === "dark" ? "algo-dark" : "algo-light"}
               options={{
                 minimap: { enabled: false },
                 fontSize: 13,
@@ -477,77 +524,102 @@ export default function PracticeTab() {
           <button onClick={() => setShowMetrics(!showMetrics)} className={cn("flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors", showMetrics ? "bg-accent/10 text-accent" : "text-fg-muted hover:text-fg")}>
             <BarChart3 className="h-3.5 w-3.5" /> Метрики
           </button>
-          {aiOpenAI && (
-            <button onClick={() => setShowAI(!showAI)} className={cn("flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors", showAI ? "bg-accent/10 text-accent" : "text-fg-muted hover:text-fg")}>
-              <Lightbulb className="h-3.5 w-3.5 text-amber" /> AI Анализ
-            </button>
-          )}
+          <button onClick={() => setShowAI(true)} className={cn("flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors relative", aiLoading || aiOpenAI ? "text-accent hover:bg-accent/10" : "text-fg-muted hover:text-fg")}>
+            {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lightbulb className="h-3.5 w-3.5 text-amber" />}
+            AI Анализ
+            {aiOpenAI && !aiLoading && <span className="h-1.5 w-1.5 rounded-full bg-success" title="Анализ готов" />}
+          </button>
           <span className="ml-auto text-[10px] text-fg-subtle">Шагов: {totalSteps} | Скорость: {speed}×</span>
         </div>
+      </div>
 
-        {showDiff && (
-          <div className="p-2 border-b border-border max-h-[240px] overflow-y-auto">
-            <DiffView leftCode={code} rightCode={referenceCode} />
-          </div>
+      {/* Diff & metrics live in modals so they never reflow the canvas/editor layout */}
+      <Modal open={showDiff} onClose={() => setShowDiff(false)} title="Сравнение с эталоном" size="xl">
+        <DiffView leftCode={code} rightCode={referenceCode} />
+      </Modal>
+
+      <Modal open={showMetrics} onClose={() => setShowMetrics(false)} title="Метрики выполнения" size="lg">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          <MetricCard label="Время выполнения" value={runResult ? `${runResult.runtime ?? 0} мс` : "—"} />
+          <MetricCard
+            label="Результат теста"
+            value={runResult ? (runResult.passed ? "✓ Пройден" : "✗ Провален") : "—"}
+            color={runResult?.passed ? "text-success" : runResult ? "text-danger" : "text-fg-muted"}
+          />
+          <MetricCard label="Язык" value={LANG_LABELS[language]} />
+          <MetricCard label="Перестановок" value={hasTrace ? String(traceSwaps) : "—"} />
+          <MetricCard label="Записей в массив" value={hasTrace ? String(traceWrites) : "—"} />
+          <MetricCard label="Всего операций" value={hasTrace ? String(traceTotal) : "—"} />
+          <MetricCard label="Размер массива (n)" value={String(arraySize)} />
+          <MetricCard label="Шагов визуализации" value={String(totalSteps)} />
+          <MetricCard label="Сложность по времени" value={algo.time_complexity || "—"} />
+          <MetricCard label="Сложность по памяти" value={algo.space_complexity || "—"} />
+        </div>
+        {!runResult && (
+          <p className="text-xs text-fg-subtle mt-3">Запустите код, чтобы увидеть результаты выполнения.</p>
         )}
-
-        {showMetrics && (
-          <div className="p-2 border-b border-border">
-            <div className="grid grid-cols-5 gap-2">
-              <MetricCard label="Время" value={`${runResult?.runtime ?? 0} мс`} />
-              <MetricCard label="Сравнений" value={String(runResult?.trace ? traceComparisons : "—")} />
-              <MetricCard label="Обменов" value={String(runResult?.trace ? traceSwaps : "—")} />
-              <MetricCard label="Тест" value={runResult ? (runResult.passed ? "✓ Пройден" : "✗ Провален") : "—"} color={runResult?.passed ? "text-success" : runResult ? "text-danger" : "text-fg-muted"} />
-              <MetricCard label="Элементов" value={`${arraySize}`} />
-            </div>
-          </div>
+        {runResult && !hasTrace && (
+          <p className="text-xs text-fg-subtle mt-3">
+            Пооперационные метрики (перестановки, записи) отслеживаются только для JavaScript-сортировок «на месте».
+            Решения, создающие новый массив, и другие языки выполняются на сервере без трассировки операций.
+          </p>
         )}
+      </Modal>
 
-        {showAI && (aiLoading || aiOpenAI || aiGigaChat) && (
-          <div className="p-3 border-b border-border">
-            {aiLoading ? (
-              <div className="flex items-center gap-2 text-xs text-fg-muted py-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                AI анализирует код...
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {aiOpenAI && (
-                  <div className="bg-bg-subtle rounded-lg p-3 border border-border/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Bot className="h-4 w-4 text-blue" />
-                      <span className="text-xs font-semibold text-blue">OpenAI (GPT-4o-mini)</span>
-                    </div>
-                    <p className="text-sm leading-relaxed text-fg whitespace-pre-wrap">{aiOpenAI}</p>
+      <Modal open={showAI} onClose={() => setShowAI(false)} title="AI-анализ кода" size="xl">
+        {aiLoading ? (
+          <div className="flex items-center gap-2 text-sm text-fg-muted py-6 justify-center">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            AI анализирует код…
+          </div>
+        ) : aiOpenAI || aiGigaChat ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {aiOpenAI && (
+              <div className="bg-gradient-to-br from-bg-elev to-bg-subtle border border-indigo-500/10 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center gap-2 pb-2 mb-2 border-b border-border/40">
+                  <div className="h-6 w-6 rounded-md bg-indigo-500/10 grid place-items-center">
+                    <Bot className="h-3.5 w-3.5 text-indigo-500" />
                   </div>
-                )}
-                {aiGigaChat ? (
-                  <div className="bg-bg-subtle rounded-lg p-3 border border-border/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Bot className="h-4 w-4 text-purple" />
-                      <span className="text-xs font-semibold text-purple">GigaChat</span>
-                    </div>
-                    <p className="text-sm leading-relaxed text-fg whitespace-pre-wrap">{aiGigaChat}</p>
-                  </div>
-                ) : aiOpenAI && !aiGigaChat ? (
-                  <div className="bg-bg-subtle rounded-lg p-3 border border-border/50 flex items-center justify-center">
-                    <p className="text-xs text-fg-muted">GigaChat временно недоступен</p>
-                  </div>
-                ) : null}
+                  <span className="text-xs font-semibold text-indigo-500">OpenAI (GPT-4o-mini)</span>
+                </div>
+                <Markdown text={aiOpenAI} />
               </div>
             )}
+            {aiGigaChat ? (
+              <div className="bg-gradient-to-br from-bg-elev to-bg-subtle border border-purple-500/10 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center gap-2 pb-2 mb-2 border-b border-border/40">
+                  <div className="h-6 w-6 rounded-md bg-purple-500/10 grid place-items-center">
+                    <Bot className="h-3.5 w-3.5 text-purple-500" />
+                  </div>
+                  <span className="text-xs font-semibold text-purple-500">GigaChat</span>
+                </div>
+                <Markdown text={aiGigaChat} />
+              </div>
+            ) : aiOpenAI ? (
+              <div className="bg-bg-subtle rounded-xl p-4 border border-border/50 flex items-center justify-center">
+                <p className="text-xs text-fg-muted">GigaChat временно недоступен</p>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="text-center py-8 space-y-2">
+            <Lightbulb className="h-10 w-10 text-amber/60 mx-auto" />
+            <p className="text-sm font-medium">AI-анализ появится после запуска кода</p>
+            <p className="text-xs text-fg-subtle max-w-sm mx-auto">
+              Нажмите «Запустить» — нейросеть проанализирует ваше решение, объяснит ошибки и предложит улучшения.
+            </p>
           </div>
         )}
-      </div>
+      </Modal>
     </div>
   );
 }
 
 function MetricCard({ label, value, color = "text-fg" }: { label: string; value: string; color?: string }) {
   return (
-    <div className="bg-bg-subtle rounded px-2 py-1.5 text-center">
-      <p className="text-[10px] text-fg-muted">{label}</p>
-      <p className={cn("text-xs font-semibold tabular-nums", color)}>{value}</p>
+    <div className="bg-bg-subtle rounded-lg px-3 py-2.5 text-center border border-border">
+      <p className="text-[11px] text-fg-muted mb-0.5">{label}</p>
+      <p className={cn("text-sm font-semibold tabular-nums", color)}>{value}</p>
     </div>
   );
 }

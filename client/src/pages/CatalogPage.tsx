@@ -54,7 +54,10 @@ export default function CatalogPage() {
 
   const categories = useMemo(() => {
     const set = new Set(data.map((a) => a.category).filter(Boolean));
-    return [{ value: "", label: t("catalog.filter_all") }, ...Array.from(set).sort().map((c) => ({ value: c, label: c }))];
+    return [
+      { value: "", label: t("catalog.filter_all") },
+      ...Array.from(set).sort().map((c) => ({ value: c, label: t(`category.${c}`, { defaultValue: c }) })),
+    ];
   }, [data, t]);
 
   const fuse = useMemo(
@@ -90,23 +93,26 @@ export default function CatalogPage() {
       </header>
 
       <div className="card p-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-          <div className="md:col-span-5 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fg-subtle pointer-events-none" />
-            <Input
-              placeholder={t("catalog.search_placeholder")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-9"
-            />
-            {search && (
-              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg" aria-label="Очистить">
-                <X className="h-4 w-4" />
-              </button>
-            )}
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <label className="label">{t("catalog.search_label")}</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fg-subtle pointer-events-none" />
+              <Input
+                placeholder={t("catalog.search_placeholder")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 pr-9"
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg" aria-label="Очистить">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
-          <div className="md:col-span-3"><Select label={t("catalog.filter_category")} value={category} onChange={(e) => setCategory(e.target.value)} options={categories} /></div>
-          <div className="md:col-span-2">
+          <div className="w-44"><Select label={t("catalog.filter_category")} value={category} onChange={(e) => setCategory(e.target.value)} options={categories} /></div>
+          <div className="w-36">
             <Select
               label={t("catalog.filter_difficulty")}
               value={difficulty}
@@ -119,8 +125,8 @@ export default function CatalogPage() {
               ]}
             />
           </div>
-          <div className="md:col-span-2 flex items-end gap-2">
-            <label className="flex items-center gap-2 text-sm cursor-pointer h-10">
+          <div className="flex items-center gap-3 h-10">
+            <label className="flex items-center gap-2 text-sm cursor-pointer whitespace-nowrap">
               <input
                 type="checkbox"
                 checked={completed === "1"}
@@ -130,7 +136,7 @@ export default function CatalogPage() {
               {t("catalog.filter_completed")}
             </label>
             {hasFilters && (
-              <Button variant="ghost" size="sm" onClick={reset} className="ml-auto">{t("catalog.filter_reset")}</Button>
+              <Button variant="ghost" size="sm" onClick={reset}>{t("catalog.filter_reset")}</Button>
             )}
           </div>
         </div>

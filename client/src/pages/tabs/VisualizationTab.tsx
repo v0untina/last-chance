@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Play, Pause, SkipBack, SkipForward, RotateCcw, Gauge, Sparkles, Loader2, X, Shuffle, BookOpen, Variable, Bot } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, RotateCcw, Gauge, Shuffle, BookOpen, Variable, Bot } from "lucide-react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
+import { Modal } from "@/components/ui/Modal";
 import { engines, type EngineKey } from "@/visualization/engines";
 import { CanvasRenderer } from "@/visualization/CanvasRenderer";
 import { AnimationController } from "@/visualization/AnimationController";
 import { StatsCollector } from "@/visualization/StatsCollector";
+import { Markdown } from "@/components/ui/Markdown";
 import { api, extractErrorMessage } from "@/lib/api";
 import toast from "react-hot-toast";
 import type { Algorithm, DualAIResponse } from "@/types/api";
@@ -20,6 +22,11 @@ const SAMPLES: Record<EngineKey, string> = {
   insertion: "8, 3, 1, 7, 4, 9, 2, 6, 5",
   selection: "64, 25, 12, 22, 11, 8, 39, 17, 31",
   binary: "1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25",
+  quick: "7, 2, 1, 6, 8, 5, 3, 4",
+  merge: "38, 27, 43, 3, 9, 82, 10",
+  heap: "4, 10, 3, 5, 1",
+  stack: "1, 2, 3, 4",
+  queue: "1, 2, 3, 4",
 };
 
 function pickEngine(slug: string): EngineKey {
@@ -28,6 +35,11 @@ function pickEngine(slug: string): EngineKey {
   if (s.includes("insertion")) return "insertion";
   if (s.includes("selection")) return "selection";
   if (s.includes("binary")) return "binary";
+  if (s.includes("quick")) return "quick";
+  if (s.includes("merge")) return "merge";
+  if (s.includes("heap")) return "heap";
+  if (s.includes("stack")) return "stack";
+  if (s.includes("queue")) return "queue";
   return "bubble";
 }
 
@@ -58,7 +70,6 @@ export default function VisualizationTab() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<{ text: string; provider: string; cached?: boolean } | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
-  const [aiAction, setAiAction] = useState<"explain" | "analyze" | "hint">("explain");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
@@ -81,7 +92,7 @@ export default function VisualizationTab() {
     const r = new CanvasRenderer(canvasRef.current);
     r.resize();
     rendererRef.current = r;
-    const ro = new ResizeObserver(() => r.resize());
+    const ro = new ResizeObserver(() => { r.resize(); ctrlRef.current?.redraw(); });
     ro.observe(canvasRef.current);
     ctrlRef.current = new AnimationController(
       r,
@@ -94,7 +105,7 @@ export default function VisualizationTab() {
       () => { setPlaying(false); }
     );
     runVisualization();
-    return () => { ro.disconnect(); };
+    return () => { ctrlRef.current?.pause(); ro.disconnect(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engineSelection, arrText, target]);
 
@@ -124,8 +135,8 @@ export default function VisualizationTab() {
     try {
       const { data } = await api.post<{ data: { text: string; provider: string; cached?: boolean } }>("/ai/ask", {
         prompt,
-        type: aiAction,
-        context: { algorithm: algo.slug, action: aiAction },
+        type: "explain",
+        context: { algorithm: algo.slug },
         provider: "auto",
       });
       setAiResponse(data.data);
@@ -158,6 +169,11 @@ export default function VisualizationTab() {
                   { value: "insertion", label: "Сортировка вставками" },
                   { value: "selection", label: "Сортировка выбором" },
                   { value: "binary", label: "Бинарный поиск" },
+                  { value: "quick", label: "Быстрая сортировка" },
+                  { value: "merge", label: "Сортировка слиянием" },
+                  { value: "heap", label: "Пирамидальная сортировка" },
+                  { value: "stack", label: "Стек (LIFO)" },
+                  { value: "queue", label: "Очередь (FIFO)" },
                 ]}
               />
             </div>
@@ -298,47 +314,42 @@ export default function VisualizationTab() {
         </div>
       </div>
 
-      {/* AI Assistant */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Bot className="h-4 w-4 text-accent" />{t("ai.title")}
-            <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setAiOpen((v) => !v)}>
-              {aiOpen ? <X className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        {aiOpen && (
-          <CardBody className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {(["explain", "analyze", "hint"] as const).map((act) => (
-                <Button key={act} size="sm" variant={aiAction === act ? "primary" : "outline"} onClick={() => setAiAction(act)}>
-                  {act === "explain" ? t("ai.explain") : act === "analyze" ? t("ai.analyze") : t("ai.hint")}
-                </Button>
-              ))}
-            </div>
-            <Textarea
-              label={t("ai.ask_label")}
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder={t("ai.ask_placeholder")}
-              rows={3}
-            />
-            <Button onClick={askAI} loading={aiLoading} className="w-full">
-              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("ai.send")}
-            </Button>
-            {aiResponse && (
-              <div className="p-3 bg-bg-subtle rounded-lg space-y-2 animate-fade-in">
-                <div className="flex items-center gap-2 text-xs text-fg-muted">
-                  <Badge tone="info">{aiResponse.provider}</Badge>
-                  {aiResponse.cached && <Badge tone="default">{t("ai.cached")}</Badge>}
+      {/* AI Assistant — floating launcher opens a modal so it never crowds the page bottom */}
+      <button
+        onClick={() => setAiOpen(true)}
+        className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 h-12 px-5 rounded-full bg-accent text-white shadow-lg shadow-accent/30 hover:bg-accent-hover transition-colors"
+        aria-label={t("ai.title")}
+      >
+        <Bot className="h-5 w-5" />
+        <span className="text-sm font-medium">{t("ai.title")}</span>
+      </button>
+
+      <Modal open={aiOpen} onClose={() => setAiOpen(false)} title={t("ai.title")} size="lg">
+        <div className="space-y-3">
+          <Textarea
+            label={t("ai.ask_label")}
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            placeholder={t("ai.ask_placeholder")}
+            rows={3}
+          />
+          <Button onClick={askAI} loading={aiLoading} className="w-full">
+            {t("ai.send")}
+          </Button>
+          {aiResponse && (
+            <div className="p-4 bg-gradient-to-br from-bg-elev to-bg-subtle border border-accent/10 rounded-xl space-y-2 animate-fade-in shadow-sm">
+              <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                <div className="h-6 w-6 rounded-md bg-accent/10 grid place-items-center">
+                  <Bot className="h-3.5 w-3.5 text-accent" />
                 </div>
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{aiResponse.text}</p>
+                <span className="text-xs font-semibold text-fg">{aiResponse.provider}</span>
+                {aiResponse.cached && <Badge tone="default">Из кэша</Badge>}
               </div>
-            )}
-          </CardBody>
-        )}
-      </Card>
+              <Markdown text={aiResponse.text} />
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

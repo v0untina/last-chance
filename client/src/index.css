@@ -91,6 +91,7 @@
 }
 @keyframes skeleton { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+.animate-delay-0 { animation-delay: 0ms; }
 .animate-delay-100 { animation-delay: 100ms; }
 .animate-delay-200 { animation-delay: 200ms; }
 .animate-delay-300 { animation-delay: 300ms; }
@@ -98,6 +99,8 @@
 .animate-delay-500 { animation-delay: 500ms; }
 .animate-delay-600 { animation-delay: 600ms; }
 .animate-delay-700 { animation-delay: 700ms; }
+.animate-delay-800 { animation-delay: 800ms; }
+.animate-delay-900 { animation-delay: 900ms; }
 .animate-delay-1000 { animation-delay: 1000ms; }
 
 .floating-shape {
@@ -132,6 +135,9 @@
   transform: translateY(-4px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
   border-color: var(--accent);
+}
+.dark .card-hover:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.15);
 }
 
 .gradient-text {

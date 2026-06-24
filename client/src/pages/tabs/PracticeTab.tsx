@@ -159,6 +159,7 @@ export default function PracticeTab() {
   const [aiOpenAI, setAiOpenAI] = useState<string | null>(null);
   const [aiGigaChat, setAiGigaChat] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiIsLocal, setAiIsLocal] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
@@ -180,6 +181,7 @@ export default function PracticeTab() {
     setAiError(null);
     setAiOpenAI(null);
     setAiGigaChat(null);
+    setAiIsLocal(false);
     try {
       const { data } = await api.post<DualAIResponse>("/ai/analyze-dual", {
         code: userCode,
@@ -189,12 +191,13 @@ export default function PracticeTab() {
       });
       const oa = data.data.openai?.text ?? null;
       const gc = data.data.gigachat?.text ?? null;
+      const isLocal = data.data.openai?.provider === "local";
       if (!oa && !gc) {
-        // Оба провайдера не ответили (например, недействительный API-ключ или сервис недоступен).
         setAiError("ИИ-сервис сейчас недоступен: ни один провайдер не вернул ответ. Проверьте API-ключи OpenAI / GigaChat в настройках сервера.");
       } else {
         setAiOpenAI(oa);
         setAiGigaChat(gc);
+        setAiIsLocal(isLocal);
       }
     } catch (e) {
       setAiError(extractErrorMessage(e, "Не удалось получить ответ от ИИ. Попробуйте ещё раз позже."));
@@ -362,6 +365,7 @@ return (arg) => {
     setRunResult(null);
     setAiOpenAI(null);
     setAiGigaChat(null);
+    setAiIsLocal(false);
   }, [algo.slug, language]);
 
   useEffect(() => {
@@ -629,7 +633,9 @@ return (arg) => {
                   <div className="h-6 w-6 rounded-md bg-indigo-500/10 grid place-items-center">
                     <Bot className="h-3.5 w-3.5 text-indigo-500" />
                   </div>
-                  <span className="text-xs font-semibold text-indigo-500">OpenAI (GPT-4o-mini)</span>
+                  <span className="text-xs font-semibold text-indigo-500">
+                    {aiIsLocal ? "Локальный анализ" : "OpenAI (GPT-4o-mini)"}
+                  </span>
                 </div>
                 <Markdown text={aiOpenAI} />
               </div>

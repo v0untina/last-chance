@@ -143,6 +143,10 @@ export class AIProviderFactory {
     return results;
   }
 
+  hasAnyProvider(): boolean {
+    return this.providers.length > 0;
+  }
+
   getProvidersInfo(): Array<{ name: string; circuitState: CircuitBreakerState | "closed" }> {
     return this.providers.map((p) => {
       const state = this.circuitBreaker.get(p.name);

@@ -170,7 +170,20 @@ export class AIController {
         maxTokens: 600,
       };
 
+      const noProviders = !aiFactory.hasAnyProvider();
+      if (noProviders) {
+        const localText = this.localAnalysis(code as string, errorMessage as string | undefined, algorithmName as string | undefined, language as string);
+        res.json({ data: { openai: { text: localText, provider: "local" }, gigachat: null } });
+        return;
+      }
+
       const result = await aiFactory.generateDual(aiPrompt);
+
+      if (!result.openai && !result.gigachat) {
+        const localText = this.localAnalysis(code as string, errorMessage as string | undefined, algorithmName as string | undefined, language as string);
+        res.json({ data: { openai: { text: localText, provider: "local" }, gigachat: null } });
+        return;
+      }
 
       res.json({
         data: {
@@ -182,6 +195,42 @@ export class AIController {
       next(e);
     }
   };
+
+  private localAnalysis(code: string, errorMessage: string | undefined, algorithmName: string | undefined, language: string): string {
+    const lines = code.split("\n").length;
+    const algo = algorithmName ?? "алгоритма";
+
+    if (errorMessage) {
+      const hints: string[] = [];
+      if (errorMessage.includes("undefined") || errorMessage.includes("null"))
+        hints.push("- Обращение к несуществующему значению — проверьте что переменная инициализирована перед использованием.");
+      if (errorMessage.includes("index") || errorMessage.includes("IndexError") || errorMessage.includes("out of range"))
+        hints.push("- Выход за границы массива — проверьте условие цикла (`< n`, а не `<= n`).");
+      if (errorMessage.includes("recursion") || errorMessage.includes("RecursionError") || errorMessage.includes("stack overflow"))
+        hints.push("- Бесконечная рекурсия — убедитесь что есть базовый случай возврата.");
+      if (errorMessage.includes("TypeError") || errorMessage.includes("cannot read"))
+        hints.push("- Ошибка типа — убедитесь что передаёте правильный тип данных в функцию.");
+      if (errorMessage.toLowerCase().includes("syntax") || errorMessage.includes("SyntaxError"))
+        hints.push("- Синтаксическая ошибка — проверьте скобки, двоеточия и отступы.");
+      if (hints.length === 0)
+        hints.push("- Проверьте логику: сравните ваш код с эталонным алгоритмом по шагам.", "- Добавьте `console.log` / `print` в ключевые места чтобы увидеть промежуточные значения.");
+
+      return `**Анализ ошибки в ${algo} (${language})**\n\nОбнаружена ошибка при выполнении кода.\n\n**Возможные причины:**\n${hints.join("\n")}\n\n> *Для глубокого AI-анализа добавьте ключ OPENAI_API_KEY в файл \`server/.env\`*`;
+    }
+
+    // No error, wrong output
+    const tips: string[] = [];
+    if (code.includes("sort") || algo.includes("sort") || algo.includes("Sort"))
+      tips.push("- Убедитесь что функция **возвращает** отсортированный массив (не изменяет и не возвращает `undefined`).");
+    if (algo.toLowerCase().includes("binary"))
+      tips.push("- Бинарный поиск требует **отсортированного** массива на входе.", "- Проверьте условие: `left <= right`, а не `left < right`.");
+    if (algo.toLowerCase().includes("quick") || algo.toLowerCase().includes("merge"))
+      tips.push("- Рекурсивные сортировки: убедитесь что базовый случай (`length <= 1`) обрабатывается корректно.");
+    if (tips.length === 0)
+      tips.push("- Сравните вывод вашей функции с ожидаемым результатом.", "- Проверьте граничные случаи: пустой массив, массив из одного элемента.", `- Код содержит ${lines} строк — убедитесь что логика соответствует алгоритму ${algo}.`);
+
+    return `**Анализ кода: ${algo} (${language})**\n\nКод выполнился, но результат не совпал с ожидаемым.\n\n**Что проверить:**\n${tips.join("\n")}\n\n> *Для глубокого AI-анализа добавьте ключ OPENAI_API_KEY в файл \`server/.env\`*`;
+  }
 
   stats = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

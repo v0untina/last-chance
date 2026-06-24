@@ -134,9 +134,6 @@ export default function TestTab() {
               <div className="flex items-center gap-2">
                 <Badge tone="info">{total} {total === 1 ? "вопрос" : "вопросов"}</Badge>
                 <Badge tone="warning">Проходной: {test.passing_score}%</Badge>
-                <Button size="sm" variant="outline" onClick={generateMore} loading={generating}>
-                  <Sparkles className="h-3.5 w-3.5" />Добавить AI-вопросы
-                </Button>
               </div>
             </CardTitle>
           </CardHeader>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { useAuth } from "@/stores/auth";
 import { extractErrorMessage } from "@/lib/api";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -8,7 +7,6 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const login = useAuth((s) => s.login);
 
@@ -53,7 +51,7 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium block mb-1">{t("common.password") || "Пароль"}</label>
+              <label className="text-sm font-medium block mb-1">Пароль</label>
               <Input
                 type="password"
                 value={password}

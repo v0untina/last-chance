@@ -194,7 +194,7 @@ export default function HomePage() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-sm font-medium mb-6">
             <Sparkles className="h-4 w-4" />
-            Дипломный проект · ИСПк-402-52-00
+            Интерактивный учебник
           </div>
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.05]">
             Изучайте{" "}

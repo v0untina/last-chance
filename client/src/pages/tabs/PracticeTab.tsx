@@ -158,6 +158,7 @@ export default function PracticeTab() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiOpenAI, setAiOpenAI] = useState<string | null>(null);
   const [aiGigaChat, setAiGigaChat] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
@@ -176,6 +177,9 @@ export default function PracticeTab() {
   const fetchDualAI = useCallback(async (userCode: string, errorMessage?: string) => {
     setAiLoading(true);
     setShowAI(true);
+    setAiError(null);
+    setAiOpenAI(null);
+    setAiGigaChat(null);
     try {
       const { data } = await api.post<DualAIResponse>("/ai/analyze-dual", {
         code: userCode,
@@ -183,11 +187,17 @@ export default function PracticeTab() {
         algorithmName: algo.name,
         language,
       });
-      setAiOpenAI(data.data.openai?.text ?? null);
-      setAiGigaChat(data.data.gigachat?.text ?? null);
-    } catch {
-      setAiOpenAI("Не удалось получить ответ от AI");
-      setAiGigaChat(null);
+      const oa = data.data.openai?.text ?? null;
+      const gc = data.data.gigachat?.text ?? null;
+      if (!oa && !gc) {
+        // Оба провайдера не ответили (например, недействительный API-ключ или сервис недоступен).
+        setAiError("ИИ-сервис сейчас недоступен: ни один провайдер не вернул ответ. Проверьте API-ключи OpenAI / GigaChat в настройках сервера.");
+      } else {
+        setAiOpenAI(oa);
+        setAiGigaChat(gc);
+      }
+    } catch (e) {
+      setAiError(extractErrorMessage(e, "Не удалось получить ответ от ИИ. Попробуйте ещё раз позже."));
     } finally {
       setAiLoading(false);
     }
@@ -571,6 +581,12 @@ export default function PracticeTab() {
           <div className="flex items-center gap-2 text-sm text-fg-muted py-6 justify-center">
             <Loader2 className="h-5 w-5 animate-spin" />
             AI анализирует код…
+          </div>
+        ) : aiError ? (
+          <div className="rounded-xl border border-danger/20 bg-danger/[0.04] p-5 text-center space-y-2">
+            <AlertTriangle className="h-9 w-9 text-danger/70 mx-auto" />
+            <p className="text-sm font-medium text-danger">ИИ-анализ недоступен</p>
+            <p className="text-xs text-fg-muted max-w-md mx-auto leading-relaxed">{aiError}</p>
           </div>
         ) : aiOpenAI || aiGigaChat ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

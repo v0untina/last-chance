@@ -2,21 +2,15 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/stores/theme";
 import { useAuth } from "@/stores/auth";
-import { Moon, Sun, Languages, BookOpen, BarChart3, User, LogIn, LogOut } from "lucide-react";
+import { Moon, Sun, BookOpen, BarChart3, User, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 
 export function Header() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { mode, toggle } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  const switchLang = () => {
-    const next = i18n.language.startsWith("ru") ? "en" : "ru";
-    i18n.changeLanguage(next);
-    document.documentElement.lang = next;
-  };
 
   return (
     <header className="sticky top-0 z-40 bg-bg-elev/80 backdrop-blur border-b border-border">
@@ -58,10 +52,6 @@ export function Header() {
               </NavLink>
             </>
           )}
-          <Button variant="ghost" size="sm" onClick={switchLang} aria-label={t("nav.language")}>
-            <Languages className="h-4 w-4" />
-            <span className="text-xs uppercase">{i18n.language.slice(0, 2)}</span>
-          </Button>
           <Button variant="ghost" size="sm" onClick={toggle} aria-label={t("nav.theme")}>
             {mode === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>

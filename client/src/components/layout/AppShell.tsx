@@ -9,7 +9,7 @@ export function AppShell() {
         <Outlet />
       </main>
       <footer className="border-t border-border py-4 text-center text-xs text-fg-subtle">
-        © 2026 Algorithms Textbook · Дипломный проект ИСПк-402-52-00
+        © 2026 Электронный учебник «Алгоритмы и структуры данных»
       </footer>
     </div>
   );

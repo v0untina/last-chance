@@ -41,6 +41,8 @@ export class OpenAIProvider extends BaseAIProvider {
     this.apiKey = config.OPENAI_API_KEY;
     this.baseURL = this.apiKey.startsWith("sk-or-v1")
       ? "https://openrouter.ai/api/v1/chat/completions"
+      : this.apiKey.startsWith("shds-")
+      ? "https://gptunnel.ru/v1/chat/completions"
       : "https://api.openai.com/v1/chat/completions";
   }
 
@@ -118,6 +120,8 @@ export class OpenAIProvider extends BaseAIProvider {
     try {
       const healthUrl = this.apiKey.startsWith("sk-or-v1")
         ? "https://openrouter.ai/api/v1/models"
+        : this.apiKey.startsWith("shds-")
+        ? "https://gptunnel.ru/v1/models"
         : "https://api.openai.com/v1/models";
       await axios.get(healthUrl, {
         headers: { Authorization: `Bearer ${this.apiKey}` },

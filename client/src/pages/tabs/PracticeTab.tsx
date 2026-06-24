@@ -204,12 +204,49 @@ export default function PracticeTab() {
   }, [algo.name, language]);
 
   const executeJS = useCallback(async (codeToRun: string, doTrace: boolean): Promise<{ passed: boolean; output: string; runtime?: number; trace?: TraceOp[] }> => {
-    const fnName = getAlgorithmFnName(algo.slug);
-    const testInput = algo.slug === "binary-search"
-      ? [arrayRef.current, arrayRef.current[Math.floor(arrayRef.current.length / 2)]]
-      : arrayRef.current;
+    // Stack: test push/pop/peek/isEmpty operations
+    if (algo.slug === "stack") {
+      const execCode = `${codeToRun}
+return (arg) => {
+  const s = new Stack();
+  s.push(1); s.push(2); s.push(3);
+  const peek1 = s.peek();
+  const pop1 = s.pop();
+  const peek2 = s.peek();
+  const empty1 = s.isEmpty();
+  s.pop(); s.pop();
+  const empty2 = s.isEmpty();
+  return [peek1, pop1, peek2, empty1, empty2];
+};`;
+      const result = await runWorker(execCode, null, false);
+      const expected = [3, 3, 2, false, true];
+      const passed = JSON.stringify(result.value) === JSON.stringify(expected);
+      return { passed, output: JSON.stringify(result.value), runtime: result.runtime };
+    }
 
+    // Queue: test enqueue/dequeue/front/isEmpty operations
+    if (algo.slug === "queue") {
+      const execCode = `${codeToRun}
+return (arg) => {
+  const q = new Queue();
+  q.enqueue(1); q.enqueue(2); q.enqueue(3);
+  const front1 = q.front();
+  const deq1 = q.dequeue();
+  const front2 = q.front();
+  const empty1 = q.isEmpty();
+  q.dequeue(); q.dequeue();
+  const empty2 = q.isEmpty();
+  return [front1, deq1, front2, empty1, empty2];
+};`;
+      const result = await runWorker(execCode, null, false);
+      const expected = [1, 1, 2, false, true];
+      const passed = JSON.stringify(result.value) === JSON.stringify(expected);
+      return { passed, output: JSON.stringify(result.value), runtime: result.runtime };
+    }
+
+    const fnName = getAlgorithmFnName(algo.slug);
     let execCode: string, entryArg: unknown;
+
     if (algo.slug === "binary-search") {
       const sortedArray = [...arrayRef.current].sort((a, b) => a - b);
       const targetValue = sortedArray[Math.floor(sortedArray.length / 2)];
@@ -217,7 +254,7 @@ export default function PracticeTab() {
       entryArg = sortedArray;
     } else {
       execCode = `${codeToRun}\n\nreturn ${fnName};`;
-      entryArg = testInput;
+      entryArg = [...arrayRef.current];
     }
 
     const result = await runWorker(execCode, entryArg, doTrace);
@@ -230,12 +267,8 @@ export default function PracticeTab() {
 
   const executePiston = useCallback(async (codeToRun: string): Promise<{ passed: boolean; output: string; runtime?: number; trace?: TraceOp[] }> => {
     const input = [...arrayRef.current];
-    const { data } = await api.post<ExecuteResult>("/execute/run", { language, code: codeToRun, input });
-    const expected = algo.slug === "binary-search"
-      ? String(Math.floor(arrayRef.current.length / 2))
-      : getExpectedOutput(algo.slug);
-    const passed = data.data.passed && data.data.output.trim() === expected;
-    return { passed, output: data.data.output, runtime: data.data.runtime };
+    const { data } = await api.post<ExecuteResult>("/execute/run", { slug: algo.slug, language, code: codeToRun, input });
+    return { passed: data.data.passed, output: data.data.error || data.data.output, runtime: data.data.runtime };
   }, [language, algo.slug]);
 
   const fetchServerTrace = useCallback(async (): Promise<TraceOp[] | undefined> => {

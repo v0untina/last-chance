@@ -113,16 +113,6 @@ export interface UserProgress {
   completed_at?: string | null;
   updated_at: string;
 }
-  progress_id: number;
-  user_id: number;
-  algorithm_id: number;
-  theory_completed: boolean;
-  test_completed: boolean;
-  practice_completed: boolean;
-  score_percent?: number | null;
-  completed_at?: string | null;
-  updated_at: string;
-}
 
 export interface TestAttempt {
   attempt_id: number;

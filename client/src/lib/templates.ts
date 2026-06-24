@@ -566,19 +566,32 @@ func heapSort(arr []int) []int {
         return self.items[-1]
     def is_empty(self):
         return len(self.items) == 0`,
-    java: `import java.util.*;
-public class Stack<T> {
-    private ArrayList<T> items = new ArrayList<>();
-    public void push(T x) { items.add(x); }
-    public T pop() { return items.remove(items.size() - 1); }
-    public T peek() { return items.get(items.size() - 1); }
+    java: `import java.util.ArrayList;
+public class Solution {
+    private ArrayList<Integer> items = new ArrayList<>();
+    public void push(int x) { items.add(x); }
+    public int pop() { return items.remove(items.size() - 1); }
+    public int peek() { return items.get(items.size() - 1); }
     public boolean isEmpty() { return items.isEmpty(); }
+    public int size() { return items.size(); }
 }`,
-    cpp: `#include <stack>
+    cpp: `#include <vector>
 using namespace std;
-// C++ has std::stack already
-// std::stack<int> s;
-// s.push(10); s.pop(); s.top(); s.empty();`,
+
+class Stack {
+private:
+    vector<int> items;
+public:
+    void push(int x) { items.push_back(x); }
+    int pop() {
+        int x = items.back();
+        items.pop_back();
+        return x;
+    }
+    int top() const { return items.back(); }
+    bool empty() const { return items.empty(); }
+    int size() const { return (int)items.size(); }
+};`,
     go: `type Stack struct {
     items []int
 }
@@ -630,19 +643,32 @@ class Queue:
         return self.items[0]
     def is_empty(self):
         return len(self.items) == 0`,
-    java: `import java.util.*;
-public class Queue<T> {
-    private LinkedList<T> list = new LinkedList<>();
-    public void enqueue(T x) { list.addLast(x); }
-    public T dequeue() { return list.pollFirst(); }
-    public T front() { return list.peekFirst(); }
+    java: `import java.util.LinkedList;
+public class Solution {
+    private LinkedList<Integer> list = new LinkedList<>();
+    public void enqueue(int x) { list.addLast(x); }
+    public int dequeue() { return list.pollFirst(); }
+    public int front() { return list.peekFirst(); }
     public boolean isEmpty() { return list.isEmpty(); }
+    public int size() { return list.size(); }
 }`,
-    cpp: `#include <queue>
+    cpp: `#include <deque>
 using namespace std;
-// C++ has std::queue already
-// std::queue<int> q;
-// q.push(10); q.pop(); q.front(); q.empty();`,
+
+class Queue {
+private:
+    deque<int> items;
+public:
+    void enqueue(int x) { items.push_back(x); }
+    int dequeue() {
+        int x = items.front();
+        items.pop_front();
+        return x;
+    }
+    int front() const { return items.front(); }
+    bool empty() const { return items.empty(); }
+    int size() const { return (int)items.size(); }
+};`,
     go: `type Queue struct {
     items []int
 }

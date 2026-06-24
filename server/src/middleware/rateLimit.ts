@@ -15,7 +15,7 @@ export const generalRateLimiter = rateLimit({
     });
     next(new Error("RATE_LIMIT_EXCEEDED"));
   },
-  skip: (req) => req.path === "/api/health",
+  skip: (req) => req.path === "/api/health" || req.path.startsWith("/ai/"),
 });
 
 export const aiRateLimiter = rateLimit({

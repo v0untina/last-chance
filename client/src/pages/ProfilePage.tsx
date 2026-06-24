@@ -85,8 +85,8 @@ export default function ProfilePage() {
     const server = pi?.progress ?? null;
     const local = localProgress[a.slug];
     const theoryModules = pi?.theoryModules ?? 0;
-    // Читаем пройденные модули из localStorage (там хранится реальное прохождение)
-    const localModulesRaw = localStorage.getItem(`algo.modules.${a.algorithm_id}`);
+    // Читаем пройденные модули из localStorage по user-specific ключу
+    const localModulesRaw = localStorage.getItem(`algo.modules.u${user.user_id}.${a.algorithm_id}`);
     const localCompletedModules: number[] = localModulesRaw ? (() => { try { return JSON.parse(localModulesRaw); } catch { return []; } })() : [];
     const completedModules = Math.max(localCompletedModules.length, pi?.completedModules ?? 0);
     const theoryPct = theoryModules > 0 ? Math.round((completedModules / theoryModules) * 100) : 0;

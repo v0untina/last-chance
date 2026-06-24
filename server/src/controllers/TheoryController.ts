@@ -106,6 +106,28 @@ export class TheoryController {
     }
   };
 
+  getCompletedMaterials = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const algorithmId = parseInt(req.params.algorithmId, 10);
+      if (isNaN(algorithmId)) throw new BadRequestError("Invalid algorithmId");
+      const userId = req.user?.user_id;
+      if (!userId) { res.json({ data: [] }); return; }
+
+      // Find material_ids for this algorithm where user has >= QUESTIONS_TO_PASS correct answers
+      const results = await prisma.quizAttempt.groupBy({
+        by: ["material_id"],
+        where: { user_id: userId, algorithm_id: algorithmId, is_correct: true },
+        _count: { is_correct: true },
+        having: { is_correct: { _count: { gte: QUESTIONS_TO_PASS } } },
+      });
+
+      const completedIds = results.map((r) => r.material_id);
+      res.json({ data: completedIds });
+    } catch (e) {
+      next(e);
+    }
+  };
+
   checkAnswer = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const materialId = parseInt(req.params.materialId, 10);

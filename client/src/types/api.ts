@@ -198,6 +198,7 @@ export interface ExecuteResult {
     passed: boolean;
     error: string | null;
     signal: string | null;
+    expected?: string;
   };
 }
 

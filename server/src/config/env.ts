@@ -27,7 +27,7 @@ const envSchema = z.object({
   GIGACHAT_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),
-  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(1000),
   AI_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(300000),
   AI_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(200),
 

@@ -12,10 +12,11 @@ import { cn } from "@/lib/cn";
 import toast from "react-hot-toast";
 import type { Algorithm } from "@/types/api";
 import { useProgress } from "@/stores/progress";
+import { useAuth } from "@/stores/auth";
 
 const QUESTIONS_TO_PASS = 3;
-const NOTES_KEY = (algoId: number) => `algo.notes.${algoId}`;
-const MODULES_KEY = (algoId: number) => `algo.modules.${algoId}`;
+const NOTES_KEY = (userId: number | undefined, algoId: number) => `algo.notes.u${userId ?? 0}.${algoId}`;
+const MODULES_KEY = (userId: number | undefined, algoId: number) => `algo.modules.u${userId ?? 0}.${algoId}`;
 
 interface TheoryModule {
   material_id: number;
@@ -42,6 +43,8 @@ interface QuizAttemptStats {
 export default function TheoryTab() {
   const { algo } = useOutletContext<{ algo: Algorithm }>();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const uid = user?.user_id;
   const storeProgress = useProgress((s) => s.bySlug[algo.slug]);
 
   const modules = useMemo<TheoryModule[]>(() => {
@@ -61,12 +64,28 @@ export default function TheoryTab() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [completed, setCompleted] = useState<Set<number>>(() => {
     try {
-      const raw = localStorage.getItem(MODULES_KEY(algo.algorithm_id));
+      const raw = localStorage.getItem(MODULES_KEY(uid, algo.algorithm_id));
       return raw ? new Set<number>(JSON.parse(raw)) : new Set();
     } catch { return new Set(); }
   });
+
+  // Sync completed modules from server on mount (covers cleared localStorage / new device)
+  useEffect(() => {
+    if (!uid) return;
+    api.get<{ data: number[] }>(`/theory/completed/${algo.algorithm_id}`)
+      .then(({ data }) => {
+        const serverIds = data.data;
+        if (serverIds.length === 0) return;
+        setCompleted((prev) => {
+          const merged = new Set(prev);
+          serverIds.forEach((id) => merged.add(id));
+          return merged;
+        });
+      })
+      .catch(() => {});
+  }, [uid, algo.algorithm_id]);
   const [theoryCompleted, setTheoryCompleted] = useState(!!(storeProgress?.theory_completed ?? algo.progress?.theory_completed));
-  const [notes, setNotes] = useState(() => localStorage.getItem(NOTES_KEY(algo.algorithm_id)) ?? "");
+  const [notes, setNotes] = useState(() => localStorage.getItem(NOTES_KEY(uid, algo.algorithm_id)) ?? "");
   const [notesExpanded, setNotesExpanded] = useState(false);
 
   // AI quiz state per module
@@ -80,8 +99,8 @@ export default function TheoryTab() {
     attempt: QuizAttemptStats | null;
   }>>({});
 
-  useEffect(() => { localStorage.setItem(NOTES_KEY(algo.algorithm_id), notes); }, [notes, algo.algorithm_id]);
-  useEffect(() => { localStorage.setItem(MODULES_KEY(algo.algorithm_id), JSON.stringify([...completed])); }, [completed, algo.algorithm_id]);
+  useEffect(() => { localStorage.setItem(NOTES_KEY(uid, algo.algorithm_id), notes); }, [notes, uid, algo.algorithm_id]);
+  useEffect(() => { localStorage.setItem(MODULES_KEY(uid, algo.algorithm_id), JSON.stringify([...completed])); }, [completed, uid, algo.algorithm_id]);
 
   // Load first question when module opens or changes
   const current = modules[currentIdx];

@@ -77,7 +77,7 @@ export function errorHandler(
     res.status(429).json({
       error: {
         code: "AI_RATE_LIMIT_EXCEEDED",
-        message: "Превышен лимит AI-запросов (20 в минуту)",
+        message: "Превышен лимит AI-запросов, подождите немного и попробуйте снова",
         statusCode: 429,
         requestId,
       },

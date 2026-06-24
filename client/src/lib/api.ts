@@ -32,10 +32,13 @@ api.interceptors.response.use(
     if (status === 429 && cfg) {
       cfg.__retry = (cfg.__retry ?? 0) + 1;
       if (cfg.__retry <= 3) {
-        const delay = 500 * 2 ** (cfg.__retry - 1);
+        const delay = 1000 * 2 ** (cfg.__retry - 1);
         await sleep(delay);
         return api.request(cfg);
       }
+      // After retries exhausted — show friendly AI rate-limit message
+      toast.error("Слишком много запросов к AI. Подождите немного и попробуйте снова.");
+      return Promise.reject(err);
     }
 
     if (status && status >= 500 && cfg) {
@@ -51,7 +54,7 @@ api.interceptors.response.use(
       (status === undefined ? "Нет соединения с сервером" : `Ошибка ${status}`);
     if (status === 401) {
       localStorage.removeItem("algo.auth.token");
-    } else if (status !== 429) {
+    } else {
       toast.error(msg);
     }
     return Promise.reject(err);

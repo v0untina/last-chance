@@ -91,7 +91,16 @@ export class TheoryController {
         question = moduleQuizFallback(material.quiz) ?? fallbackQuestion(slug);
       }
 
-      res.json({ data: question });
+      // Return current quiz stats so frontend can initialize the counter correctly
+      let currentStats: { correct: number; total: number } | null = null;
+      const userId = (req as any).user?.user_id;
+      if (userId) {
+        const total = await prisma.quizAttempt.count({ where: { user_id: userId, material_id: materialId } });
+        const correct = await prisma.quizAttempt.count({ where: { user_id: userId, material_id: materialId, is_correct: true } });
+        currentStats = { correct, total };
+      }
+
+      res.json({ data: { ...question, currentStats } });
     } catch (e) {
       next(e);
     }

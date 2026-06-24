@@ -112,16 +112,38 @@ export default function TheoryTab() {
     }));
 
     try {
-      const { data } = await api.post<{ data: AiQuestion }>(`/theory/${materialId}/generate`);
+      const { data } = await api.post<{ data: AiQuestion & { currentStats?: { correct: number; total: number } } }>(`/theory/${materialId}/generate`);
+      const stats = data.data.currentStats;
+      const serverCorrect = stats?.correct ?? 0;
+      const serverAttempt = stats ? { correct: stats.correct, total: stats.total, wrong: stats.total - stats.correct } : null;
+
+      if (serverCorrect >= QUESTIONS_TO_PASS) {
+        setCompleted((prev) => new Set(prev).add(materialId));
+        setQuizData((prev) => ({
+          ...prev,
+          [materialId]: {
+            question: data.data,
+            selectedIndex: null,
+            correctCount: serverCorrect,
+            status: "passed",
+            previousQuestions: prev[materialId]?.previousQuestions ?? [],
+            nextQuestion: null,
+            attempt: serverAttempt,
+          },
+        }));
+        return;
+      }
+
       setQuizData((prev) => ({
         ...prev,
         [materialId]: {
           question: data.data,
           selectedIndex: null,
-          correctCount: prev[materialId]?.correctCount ?? 0,
+          correctCount: serverCorrect,
           status: "answering",
           previousQuestions: prev[materialId]?.previousQuestions ?? [],
           nextQuestion: null,
+          attempt: serverAttempt,
         },
       }));
     } catch (e) {

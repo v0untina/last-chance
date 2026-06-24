@@ -297,7 +297,7 @@ export default function PracticeTab() {
         }
         markProgress(algo.slug, "practice", 100);
         api.put(`/progress/${algo.algorithm_id}`, { practice_completed: true }).catch(() => {});
-        fetchDualAI(code);
+        // AI анализ не нужен — код правильный
       } else {
         fetchDualAI(code, result.output);
       }

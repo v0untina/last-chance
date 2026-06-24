@@ -27,10 +27,12 @@ export function Header() {
             <BookOpen className="h-4 w-4" />
             <span className="hidden md:inline">{t("nav.catalog")}</span>
           </NavLink>
-          <NavLink to="/progress" className={({ isActive }) => cn("btn btn-ghost btn-sm", isActive && "bg-bg-subtle")}>
-            <BarChart3 className="h-4 w-4" />
-            <span className="hidden md:inline">{t("nav.progress")}</span>
-          </NavLink>
+          {user && (
+            <NavLink to="/progress" className={({ isActive }) => cn("btn btn-ghost btn-sm", isActive && "bg-bg-subtle")}>
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden md:inline">{t("nav.progress")}</span>
+            </NavLink>
+          )}
         </nav>
 
         <div className="flex items-center gap-1">

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api } from "@/lib/api";
+import { useProgress } from "@/stores/progress";
 
 const TOKEN_KEY = "algo.auth.token";
 
@@ -48,6 +49,7 @@ export const useAuth = create<AuthState>((set) => ({
     const { data } = await api.post("/auth/login", { email, password });
     const { user, token } = data.data;
     setStoredToken(token);
+    useProgress.getState().initForUser(user.user_id);
     set({ user, token });
   },
 
@@ -55,25 +57,30 @@ export const useAuth = create<AuthState>((set) => ({
     const { data } = await api.post("/auth/register", { username, email, password });
     const { user, token } = data.data;
     setStoredToken(token);
+    useProgress.getState().initForUser(user.user_id);
     set({ user, token });
   },
 
   logout: () => {
     setStoredToken(null);
+    useProgress.getState().initForUser(null);
     set({ user: null, token: null });
   },
 
   loadUser: async () => {
     const token = getStoredToken();
     if (!token) {
+      useProgress.getState().initForUser(null);
       set({ user: null, loading: false });
       return;
     }
     try {
       const { data } = await api.get("/auth/me");
+      useProgress.getState().initForUser(data.data.user_id);
       set({ user: data.data, token, loading: false });
     } catch {
       setStoredToken(null);
+      useProgress.getState().initForUser(null);
       set({ user: null, token: null, loading: false });
     }
   },

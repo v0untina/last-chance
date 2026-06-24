@@ -1,7 +1,10 @@
 import { create } from "zustand";
 
-const STORAGE_KEY = "algo.progress.v1";
 const SCHEMA_VERSION = 1;
+
+function storageKey(userId: number | null) {
+  return userId ? `algo.progress.v1.user.${userId}` : null;
+}
 
 export interface AlgorithmProgress {
   theory_completed: boolean;
@@ -14,11 +17,13 @@ export interface AlgorithmProgress {
 interface ProgressStateShape {
   version: number;
   bySlug: Record<string, AlgorithmProgress>;
+  _userId: number | null;
 }
 
 type Section = "theory" | "test" | "practice";
 
 interface ProgressActions {
+  initForUser: (userId: number | null) => void;
   markSection: (slug: string, section: Section, scorePercent?: number) => void;
   reset: () => void;
   resetAlgorithm: (slug: string) => void;
@@ -39,57 +44,64 @@ function emptyProgress(): AlgorithmProgress {
   };
 }
 
-function loadFromStorage(): ProgressStateShape {
-  if (typeof window === "undefined") return { version: SCHEMA_VERSION, bySlug: {} };
+function loadFromStorage(userId: number | null): Pick<ProgressStateShape, "bySlug"> {
+  if (typeof window === "undefined" || !userId) return { bySlug: {} };
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { version: SCHEMA_VERSION, bySlug: {} };
+    const key = storageKey(userId);
+    if (!key) return { bySlug: {} };
+    const raw = localStorage.getItem(key);
+    if (!raw) return { bySlug: {} };
     const parsed = JSON.parse(raw) as ProgressStateShape;
-    if (parsed && parsed.version === SCHEMA_VERSION && parsed.bySlug) {
-      return parsed;
+    if (parsed?.version === SCHEMA_VERSION && parsed.bySlug) {
+      return { bySlug: parsed.bySlug };
     }
-    return { version: SCHEMA_VERSION, bySlug: {} };
+    return { bySlug: {} };
   } catch {
-    return { version: SCHEMA_VERSION, bySlug: {} };
+    return { bySlug: {} };
   }
 }
 
-function saveToStorage(state: ProgressStateShape) {
-  if (typeof window === "undefined") return;
+function saveToStorage(userId: number | null, state: { version: number; bySlug: Record<string, AlgorithmProgress> }) {
+  if (typeof window === "undefined" || !userId) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const key = storageKey(userId);
+    if (key) localStorage.setItem(key, JSON.stringify(state));
   } catch {
-    // localStorage might be full or disabled — silently ignore.
+    // ignore
   }
 }
-
-const initial = loadFromStorage();
 
 export const useProgress = create<ProgressState>((set, get) => ({
-  version: initial.version,
-  bySlug: initial.bySlug,
+  version: SCHEMA_VERSION,
+  bySlug: {},
+  _userId: null,
+
+  initForUser: (userId) => {
+    const loaded = loadFromStorage(userId);
+    set({ ...loaded, _userId: userId, version: SCHEMA_VERSION });
+  },
 
   markSection: (slug, section, scorePercent) => {
     const prev = get().bySlug[slug] ?? emptyProgress();
+    // Only update best_score_percent from test section (not practice which is always 100)
+    const newScore = section === "test"
+      ? Math.max(prev.best_score_percent, Math.max(0, Math.min(100, scorePercent ?? 0)))
+      : prev.best_score_percent;
     const next: AlgorithmProgress = {
       ...prev,
-      [section === "theory"
-        ? "theory_completed"
-        : section === "test"
-        ? "test_completed"
-        : "practice_completed"]: true,
-      best_score_percent: Math.max(prev.best_score_percent, Math.max(0, Math.min(100, scorePercent ?? prev.best_score_percent))),
+      [section === "theory" ? "theory_completed" : section === "test" ? "test_completed" : "practice_completed"]: true,
+      best_score_percent: newScore,
       updated_at: new Date().toISOString(),
     };
     const bySlug = { ...get().bySlug, [slug]: next };
     const state = { version: SCHEMA_VERSION, bySlug };
-    saveToStorage(state);
+    saveToStorage(get()._userId, state);
     set(state);
   },
 
   reset: () => {
     const state = { version: SCHEMA_VERSION, bySlug: {} };
-    saveToStorage(state);
+    saveToStorage(get()._userId, state);
     set(state);
   },
 
@@ -97,7 +109,7 @@ export const useProgress = create<ProgressState>((set, get) => ({
     const bySlug = { ...get().bySlug };
     delete bySlug[slug];
     const state = { version: SCHEMA_VERSION, bySlug };
-    saveToStorage(state);
+    saveToStorage(get()._userId, state);
     set(state);
   },
 
@@ -118,5 +130,5 @@ export const useProgress = create<ProgressState>((set, get) => ({
 }));
 
 export function applyInitialProgressTheme(): void {
-  // no-op, present for symmetry with theme.ts; called on boot.
+  // no-op
 }

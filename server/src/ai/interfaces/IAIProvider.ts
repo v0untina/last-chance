@@ -33,6 +33,8 @@ export interface QuestionContext {
   previousQuestion?: string;
   /** Текст конкретного модуля — чтобы вопрос был строго по его содержанию. */
   moduleContent?: string;
+  /** История предыдущих вопросов и ответов пользователя — чтобы не повторяться. */
+  previousQA?: Array<{ question: string; userAnswer: string; correct: boolean }>;
 }
 
 export interface CodeAnalysis {

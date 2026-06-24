@@ -67,7 +67,10 @@ export abstract class BaseAIProvider implements IAIProvider {
 Модуль (тема вопроса): ${context.topic}
 Сложность: ${context.difficulty}
 ${context.moduleContent ? `\nМатериал модуля (составь вопрос строго по нему):\n"""\n${context.moduleContent.slice(0, 1200)}\n"""` : ""}
-${context.previousQuestion ? `\nПредыдущий вопрос (не повторяй его): ${context.previousQuestion}` : ""}`,
+${context.previousQuestion ? `\nПредыдущий вопрос (не повторяй его): ${context.previousQuestion}` : ""}
+${context.previousQA && context.previousQA.length > 0
+  ? `\nИстория вопросов и ответов пользователя (не повторяй эти вопросы):\n${context.previousQA.map((qa, i) => `${i + 1}. Вопрос: "${qa.question}"\n   Ответ пользователя: "${qa.userAnswer}" (${qa.correct ? "верно" : "неверно"})`).join("\n")}`
+  : ""}`,
       temperature: 0.8,
       maxTokens: 1100,
       jsonMode: true,

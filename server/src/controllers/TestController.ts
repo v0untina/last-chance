@@ -189,6 +189,30 @@ export class TestController {
     }
   };
 
+  checkAnswer = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const testId = parseInt(req.params.id, 10);
+      const { question_id, answer_text } = req.body as { question_id: number; answer_text: string };
+      if (!question_id || answer_text === undefined) throw new BadRequestError("question_id и answer_text обязательны");
+
+      const question = await this.prisma.question.findFirst({
+        where: { question_id: Number(question_id), test_id: testId },
+        include: { options: true },
+      });
+      if (!question) throw new NotFoundError("Вопрос");
+
+      const correct = this.check(question, String(answer_text));
+      const correctOption = question.options.find((o) => o.is_correct);
+      const correctAnswer = question.question_type === "short_answer"
+        ? (question.correct_answer ?? "")
+        : (correctOption?.option_text ?? "");
+
+      res.json({ data: { correct, correct_answer: correctAnswer, explanation: question.explanation } });
+    } catch (e) {
+      next(e);
+    }
+  };
+
   private check(
     question: { question_type: string; options: Array<{ option_id: number; is_correct: boolean }>; correct_answer: string | null },
     answerText: string

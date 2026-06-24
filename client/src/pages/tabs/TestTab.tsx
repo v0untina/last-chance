@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, XCircle, ArrowLeft, ArrowRight, RotateCcw, Sparkles, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, RotateCcw, Loader2, ChevronRight } from "lucide-react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -22,68 +22,147 @@ interface TestDetail {
   algorithm?: { algorithm_id: number; name: string; slug: string };
 }
 
-interface SubmitResult {
-  test_id: number;
-  title: string;
-  score: number;
-  max_score: number;
-  percent: number;
-  passed: boolean;
-  passing_score: number;
-  review: Array<{
-    question_id: number;
-    question_text: string;
-    user_answer: string;
-    correct: boolean;
-    correct_answer: string;
-    explanation: string | null;
-  }>;
+interface CheckResult {
+  correct: boolean;
+  correct_answer: string;
+  explanation: string | null;
 }
+
+interface HistoryItem {
+  question_text: string;
+  userAnswer: string;
+  correct: boolean;
+  correct_answer: string;
+  explanation: string | null;
+}
+
+// Нужно набрать 3 правильных ответа — неверные не считаются, вопросы генерируются до победы
+const CORRECT_TO_PASS = 3;
+
+type Phase = "intro" | "question" | "checking" | "feedback" | "generating" | "result";
 
 export default function TestTab() {
   const { algo } = useOutletContext<{ algo: Algorithm }>();
   const { t } = useTranslation();
   const [test, setTest] = useState<TestDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [phase, setPhase] = useState<"intro" | "running" | "result">("intro");
-  const [idx, setIdx] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, unknown>>({});
-  const [result, setResult] = useState<SubmitResult | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [generating, setGenerating] = useState(false);
 
-  const load = (id: number) => {
-    setLoading(true);
+  const [phase, setPhase] = useState<Phase>("intro");
+  const [questions, setQuestions] = useState<(Question & { options: Option[] })[]>([]);
+  const [qIdx, setQIdx] = useState(0);
+  const [currentAnswer, setCurrentAnswer] = useState<unknown>(undefined);
+  const [feedback, setFeedback] = useState<CheckResult | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  // Только правильные ответы считаются
+  const [correctCount, setCorrectCount] = useState(0);
+
+  const load = (id: number) =>
     api.get<{ data: TestDetail }>(`/tests/${id}`)
-      .then(({ data }) => { setTest(data.data); setLoading(false); })
-      .catch((e) => { toast.error(extractErrorMessage(e, t("common.error"))); setLoading(false); });
-  };
+      .then(({ data }) => { setTest(data.data); setLoading(false); return data.data; })
+      .catch((e) => { toast.error(extractErrorMessage(e, t("common.error"))); setLoading(false); return null; });
 
   useEffect(() => {
     if (!algo.tests || algo.tests.length === 0) { setLoading(false); return; }
     load(algo.tests[0].test_id);
-  }, [algo.tests, t]);
+  }, [algo.tests]);
 
-  const generateMore = async () => {
-    if (!test || generating) return;
-    setGenerating(true);
+  const start = async () => {
+    if (!test || test.questions.length === 0) return;
+    setQuestions([test.questions[0]]);
+    setQIdx(0);
+    setCurrentAnswer(undefined);
+    setFeedback(null);
+    setHistory([]);
+    setCorrectCount(0);
+    setPhase("question");
+  };
+
+  const checkAnswer = async () => {
+    if (!test || currentAnswer === undefined) {
+      toast.error("Выберите ответ");
+      return;
+    }
+    const q = questions[qIdx];
+    const answerText = serializeAnswer(q.question_type, currentAnswer);
+    setPhase("checking");
     try {
-      const { data } = await api.post<{ data: { created: { question_id: number; question_text: string }[]; count: number } }>(`/tests/${test.test_id}/generate-questions`, {
-        count: 3,
+      const { data } = await api.post<{ data: CheckResult }>(`/tests/${test.test_id}/check-answer`, {
+        question_id: q.question_id,
+        answer_text: answerText,
+      });
+      const res = data.data;
+      const item: HistoryItem = {
+        question_text: q.question_text,
+        userAnswer: answerText,
+        correct: res.correct,
+        correct_answer: res.correct_answer,
+        explanation: res.explanation,
+      };
+      setHistory((h) => [...h, item]);
+      if (res.correct) {
+        setCorrectCount((c) => c + 1);
+      }
+      setFeedback(res);
+      setPhase("feedback");
+    } catch (e) {
+      toast.error(extractErrorMessage(e, "Ошибка проверки ответа"));
+      setPhase("question");
+    }
+  };
+
+  // Генерируем следующий вопрос, передавая всю историю Q&A
+  const generateNext = async (currentHistory: HistoryItem[]) => {
+    if (!test) return;
+    setPhase("generating");
+    try {
+      await api.post(`/tests/${test.test_id}/generate-questions`, {
+        count: 1,
         difficulty: "medium",
         topic: algo.name,
+        previousQA: currentHistory.map((h) => ({
+          question: h.question_text,
+          userAnswer: h.userAnswer,
+          correct: h.correct,
+        })),
       });
-      if (data.data.count > 0) {
-        toast.success(`AI создал ${data.data.count} новых вопросов!`);
-        load(test.test_id);
-      } else {
-        toast.error("AI не смог сгенерировать вопросы (проверьте API-ключи)");
+      const updated = await load(test.test_id);
+      if (updated) {
+        const newQ = updated.questions[updated.questions.length - 1];
+        setQuestions((prev) => [...prev, newQ]);
+        setQIdx((i) => i + 1);
+        setCurrentAnswer(undefined);
+        setFeedback(null);
+        setPhase("question");
       }
     } catch (e) {
-      toast.error(extractErrorMessage(e, "Не удалось сгенерировать вопросы"));
-    } finally {
-      setGenerating(false);
+      toast.error(extractErrorMessage(e, "Не удалось сгенерировать вопрос"));
+      setPhase("feedback");
     }
+  };
+
+  const handleNext = (latestHistory: HistoryItem[], latestCorrect: number) => {
+    // Если набрали 3 правильных — завершаем
+    if (latestCorrect >= CORRECT_TO_PASS) {
+      finishTest();
+      return;
+    }
+    // Иначе генерируем следующий вопрос
+    generateNext(latestHistory);
+  };
+
+  const finishTest = () => {
+    useProgress.getState().markSection(algo.slug, "test", correctCount);
+    api.put(`/progress/${algo.algorithm_id}`, { test_completed: true, score_percent: 100 }).catch(() => {});
+    toast.success("Тест пройден! 3 правильных ответа 🎉");
+    setPhase("result");
+  };
+
+  const retry = () => {
+    setPhase("intro");
+    setCorrectCount(0);
+    setHistory([]);
+    setQuestions([]);
+    setQIdx(0);
   };
 
   if (loading) return <PageLoader label={t("common.loading")} />;
@@ -91,141 +170,189 @@ export default function TestTab() {
     return (
       <EmptyState
         title="Тест для этого алгоритма пока не создан"
-        description="Нажмите кнопку, чтобы AI сгенерировал вопросы"
-        action={<Button onClick={generateMore} loading={generating}><Sparkles className="h-4 w-4" />Сгенерировать вопросы</Button>}
+        description="Обратитесь к администратору для добавления вопросов"
       />
     );
   }
 
-  const q = test.questions[idx];
-  const total = test.questions.length;
-
-  const start = () => { setPhase("running"); setIdx(0); setAnswers({}); };
-
-  const submit = async () => {
-    setSubmitting(true);
-    try {
-      const payload = test.questions.map((qq) => ({
-        question_id: qq.question_id,
-        answer_text: serializeAnswer(qq.question_type, answers[qq.question_id]),
-      }));
-      const { data } = await api.post<{ data: SubmitResult }>(`/tests/${test.test_id}/submit`, { answers: payload });
-      setResult(data.data);
-      setPhase("result");
-      if (data.data.passed) {
-        useProgress.getState().markSection(algo.slug, "test", data.data.score);
-        api.put(`/progress/${algo.algorithm_id}`, { test_completed: true, score_percent: data.data.percent }).catch(() => {});
-        toast.success(t("test.passed"));
-      }
-    } catch (e) {
-      toast.error(extractErrorMessage(e, t("common.error")));
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const currentQ = questions[qIdx];
 
   return (
     <div className="space-y-4">
+      {/* Интро */}
       {phase === "intro" && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between flex-wrap gap-2">
               <span>{test.title}</span>
-              <div className="flex items-center gap-2">
-                <Badge tone="info">{total} {total === 1 ? "вопрос" : "вопросов"}</Badge>
-                <Badge tone="warning">Проходной: {test.passing_score}%</Badge>
-              </div>
+              <Badge tone="info">Цель: {CORRECT_TO_PASS} правильных ответа</Badge>
             </CardTitle>
           </CardHeader>
           <CardBody className="space-y-4">
             {test.description && <p className="text-fg-muted">{test.description}</p>}
+            <p className="text-sm text-fg-muted">
+              Ответь на {CORRECT_TO_PASS} вопроса правильно. При неверном ответе система выдаёт новый вопрос — и так до победы.
+            </p>
             <Button size="lg" onClick={start}>{t("test.start")}</Button>
           </CardBody>
         </Card>
       )}
 
-      {phase === "running" && q && (
+      {/* Вопрос */}
+      {(phase === "question" || phase === "checking") && currentQ && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <CardTitle>{t("test.question_of", { current: idx + 1, total })}</CardTitle>
-              <Badge tone="default">{labelForType(q.question_type)}</Badge>
+              <CardTitle>Вопрос {qIdx + 1}</CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge tone="default">{labelForType(currentQ.question_type)}</Badge>
+                <Badge tone="success">Верно: {correctCount}/{CORRECT_TO_PASS}</Badge>
+              </div>
+            </div>
+            {/* Прогресс правильных ответов */}
+            <div className="flex gap-1 mt-2">
+              {Array.from({ length: CORRECT_TO_PASS }).map((_, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "h-1.5 flex-1 rounded-full transition-colors",
+                    i < correctCount ? "bg-success" : "bg-bg-subtle"
+                  )}
+                />
+              ))}
             </div>
           </CardHeader>
           <CardBody className="space-y-4">
-            <p className="text-lg">{q.question_text}</p>
+            <p className="text-lg">{currentQ.question_text}</p>
             <QuestionInput
-              key={q.question_id}
-              question={q}
-              value={answers[q.question_id]}
-              onChange={(v) => setAnswers((p) => ({ ...p, [q.question_id]: v }))}
+              key={currentQ.question_id}
+              question={currentQ}
+              value={currentAnswer}
+              onChange={setCurrentAnswer}
+              disabled={phase === "checking"}
             />
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-              <Button variant="ghost" onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}>
-                <ArrowLeft className="h-4 w-4" />{t("test.prev")}
+            <div className="flex justify-end pt-2 border-t border-border">
+              <Button
+                onClick={checkAnswer}
+                loading={phase === "checking"}
+                disabled={currentAnswer === undefined}
+              >
+                Проверить
               </Button>
-              {idx < total - 1 ? (
-                <Button onClick={() => setIdx((i) => Math.min(total - 1, i + 1))}>
-                  {t("test.next")}<ArrowRight className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button onClick={submit} loading={submitting}>{t("test.submit")}</Button>
-              )}
-            </div>
-            <div className="flex gap-1 flex-wrap">
-              {test.questions.map((qq, i) => (
-                <button
-                  key={qq.question_id}
-                  onClick={() => setIdx(i)}
-                  className={cn(
-                    "h-8 w-8 rounded text-xs font-medium transition-colors",
-                    i === idx ? "bg-accent text-white" : answers[qq.question_id] !== undefined ? "bg-accent/20 text-accent" : "bg-bg-subtle text-fg-muted hover:bg-bg-elev"
-                  )}
-                  aria-label={`Вопрос ${i + 1}`}
-                >
-                  {i + 1}
-                </button>
-              ))}
             </div>
           </CardBody>
         </Card>
       )}
 
-      {phase === "result" && result && (
+      {/* Фидбек */}
+      {phase === "feedback" && feedback && currentQ && (() => {
+        const latestHistory = history;
+        const latestCorrect = correctCount;
+        return (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <CardTitle className="flex items-center gap-2">
+                  {feedback.correct
+                    ? <><CheckCircle2 className="h-5 w-5 text-success" />Верно!</>
+                    : <><XCircle className="h-5 w-5 text-danger" />Неверно — попробуем следующий</>}
+                </CardTitle>
+                <Badge tone={feedback.correct ? "success" : "warning"}>
+                  Верно: {latestCorrect}/{CORRECT_TO_PASS}
+                </Badge>
+              </div>
+              <div className="flex gap-1 mt-2">
+                {Array.from({ length: CORRECT_TO_PASS }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-1.5 flex-1 rounded-full transition-colors",
+                      i < latestCorrect ? "bg-success" : "bg-bg-subtle"
+                    )}
+                  />
+                ))}
+              </div>
+            </CardHeader>
+            <CardBody className="space-y-3">
+              {!feedback.correct && feedback.correct_answer && (
+                <div className="p-3 rounded-lg bg-success/10 border border-success/30">
+                  <p className="text-sm text-success font-medium">
+                    Правильный ответ: {feedback.correct_answer}
+                  </p>
+                </div>
+              )}
+              {feedback.explanation && (
+                <p className="text-sm text-fg-muted italic">{feedback.explanation}</p>
+              )}
+              <div className="flex justify-end pt-2 border-t border-border">
+                <Button onClick={() => handleNext(latestHistory, latestCorrect)}>
+                  {latestCorrect >= CORRECT_TO_PASS
+                    ? "Завершить тест"
+                    : "Следующий вопрос"}
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        );
+      })()}
+
+      {/* Генерация */}
+      {phase === "generating" && (
+        <Card>
+          <CardBody className="flex flex-col items-center justify-center py-12 gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-accent" />
+            <p className="text-fg-muted">Генерируем новый вопрос…</p>
+            <p className="text-xs text-fg-subtle">Верно: {correctCount}/{CORRECT_TO_PASS}</p>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Результат */}
+      {phase === "result" && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 flex-wrap">
-              {result.passed ? <CheckCircle2 className="h-5 w-5 text-success" /> : <XCircle className="h-5 w-5 text-danger" />}
-              {t("test.result_title")} — {result.passed ? t("test.passed") : t("test.failed")}
-              <Badge tone={result.passed ? "success" : "warning"} className="ml-2">{result.percent}%</Badge>
+              <CheckCircle2 className="h-5 w-5 text-success" />
+              Тест пройден!
+              <Badge tone="success" className="ml-2">{correctCount}/{CORRECT_TO_PASS}</Badge>
             </CardTitle>
           </CardHeader>
           <CardBody className="space-y-4">
-            <p className="text-lg">{t("test.score", { score: result.score, max: result.max_score, percent: result.percent })}</p>
-            {result.review && result.review.length > 0 && (
+            <p className="text-lg">
+              Вы дали <strong>{correctCount}</strong> правильных ответа из {history.length} попыток.
+            </p>
+            {history.length > 0 && (
               <div className="space-y-3">
                 <h4 className="font-semibold">{t("test.review")}</h4>
-                {result.review.map((r, i) => (
-                  <div key={r.question_id} className="p-3 rounded-lg border border-border">
+                {history.map((h, i) => (
+                  <div key={i} className="p-3 rounded-lg border border-border">
                     <div className="flex items-start gap-2">
-                      {r.correct ? <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0 mt-1" /> : <XCircle className="h-4 w-4 text-danger flex-shrink-0 mt-1" />}
+                      {h.correct
+                        ? <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0 mt-1" />
+                        : <XCircle className="h-4 w-4 text-danger flex-shrink-0 mt-1" />}
                       <div className="flex-1">
-                        <p className="font-medium">{i + 1}. {r.question_text}</p>
-                        <p className="text-sm text-fg-muted mt-1"><span className="font-medium">{t("test.your_answer")}:</span> {r.user_answer || "—"}</p>
-                        {!r.correct && r.correct_answer && (
-                          <p className="text-sm text-success mt-1"><span className="font-medium">{t("test.correct_answer")}:</span> {r.correct_answer}</p>
+                        <p className="font-medium">{i + 1}. {h.question_text}</p>
+                        <p className="text-sm text-fg-muted mt-1">
+                          <span className="font-medium">{t("test.your_answer")}:</span> {h.userAnswer || "—"}
+                        </p>
+                        {!h.correct && h.correct_answer && (
+                          <p className="text-sm text-success mt-1">
+                            <span className="font-medium">{t("test.correct_answer")}:</span> {h.correct_answer}
+                          </p>
                         )}
-                        {r.explanation && <p className="text-xs text-fg-muted mt-2 italic">{r.explanation}</p>}
+                        {h.explanation && (
+                          <p className="text-xs text-fg-muted mt-2 italic">{h.explanation}</p>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" onClick={() => { setPhase("intro"); setResult(null); }}><RotateCcw className="h-4 w-4" />{t("common.retry")}</Button>
-              <Button variant="outline" onClick={generateMore} loading={generating}><Sparkles className="h-4 w-4" />Сгенерировать ещё вопросы</Button>
-            </div>
+            <Button variant="outline" onClick={retry}>
+              <RotateCcw className="h-4 w-4" />{t("common.retry")}
+            </Button>
           </CardBody>
         </Card>
       )}
@@ -240,14 +367,35 @@ function labelForType(t: QuestionType): string {
     : "Сопоставление";
 }
 
-function QuestionInput({ question, value, onChange }: { question: Question & { options?: Option[] }; value: unknown; onChange: (v: unknown) => void }) {
+function QuestionInput({
+  question, value, onChange, disabled,
+}: {
+  question: Question & { options?: Option[] };
+  value: unknown;
+  onChange: (v: unknown) => void;
+  disabled?: boolean;
+}) {
   const t = question.question_type;
   if (t === "single_choice") {
     return (
       <div className="space-y-2">
         {question.options?.map((o) => (
-          <label key={o.option_id} className={cn("flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors", value === o.option_id ? "border-accent bg-accent/5" : "border-border hover:border-accent/50")}>
-            <input type="radio" name={`q-${question.question_id}`} checked={value === o.option_id} onChange={() => onChange(o.option_id)} className="accent-accent" />
+          <label
+            key={o.option_id}
+            className={cn(
+              "flex items-center gap-2 p-3 rounded-lg border transition-colors",
+              disabled ? "cursor-default opacity-70" : "cursor-pointer hover:border-accent/50",
+              value === o.option_id ? "border-accent bg-accent/5" : "border-border"
+            )}
+          >
+            <input
+              type="radio"
+              name={`q-${question.question_id}`}
+              checked={value === o.option_id}
+              onChange={() => !disabled && onChange(o.option_id)}
+              disabled={disabled}
+              className="accent-accent"
+            />
             <span>{o.option_text}</span>
           </label>
         ))}
@@ -256,12 +404,26 @@ function QuestionInput({ question, value, onChange }: { question: Question & { o
   }
   if (t === "multiple_choice") {
     const arr: number[] = Array.isArray(value) ? (value as number[]) : [];
-    const toggle = (id: number) => onChange(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
+    const toggle = (id: number) =>
+      !disabled && onChange(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
     return (
       <div className="space-y-2">
         {question.options?.map((o) => (
-          <label key={o.option_id} className={cn("flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors", arr.includes(o.option_id) ? "border-accent bg-accent/5" : "border-border hover:border-accent/50")}>
-            <input type="checkbox" checked={arr.includes(o.option_id)} onChange={() => toggle(o.option_id)} className="accent-accent" />
+          <label
+            key={o.option_id}
+            className={cn(
+              "flex items-center gap-2 p-3 rounded-lg border transition-colors",
+              disabled ? "cursor-default opacity-70" : "cursor-pointer hover:border-accent/50",
+              arr.includes(o.option_id) ? "border-accent bg-accent/5" : "border-border"
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={arr.includes(o.option_id)}
+              onChange={() => toggle(o.option_id)}
+              disabled={disabled}
+              className="accent-accent"
+            />
             <span>{o.option_text}</span>
           </label>
         ))}
@@ -269,10 +431,15 @@ function QuestionInput({ question, value, onChange }: { question: Question & { o
     );
   }
   if (t === "short_answer") {
-    return <input className="input" value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} placeholder="Введите ответ" />;
-  }
-  if (t === "matching") {
-    return <p className="text-sm text-fg-muted italic">Matching вопрос: введите пары в формате a-1, b-2</p>;
+    return (
+      <input
+        className="input"
+        value={(value as string) ?? ""}
+        onChange={(e) => !disabled && onChange(e.target.value)}
+        placeholder="Введите ответ"
+        disabled={disabled}
+      />
+    );
   }
   return null;
 }
@@ -280,7 +447,6 @@ function QuestionInput({ question, value, onChange }: { question: Question & { o
 function serializeAnswer(type: QuestionType, value: unknown): string {
   if (value === undefined || value === null) return "";
   if (type === "single_choice") return String(value);
-  if (type === "multiple_choice") return Array.isArray(value) ? value.join(",") : "";
-  if (type === "matching") return typeof value === "string" ? value : JSON.stringify(value);
+  if (type === "multiple_choice") return Array.isArray(value) ? (value as number[]).join(",") : "";
   return String(value);
 }

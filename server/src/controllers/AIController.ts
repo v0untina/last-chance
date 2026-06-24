@@ -79,7 +79,7 @@ export class AIController {
   // Сгенерировать пачку вопросов и СОХРАНИТЬ в БД
   generateAndSave = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { test_id, count = 3, difficulty = "medium", topic } = req.body;
+      const { test_id, count = 3, difficulty = "medium", topic, previousQA } = req.body;
       if (!test_id) throw new BadRequestError("test_id обязателен");
 
       const test = await prisma.test.findUnique({
@@ -97,6 +97,7 @@ export class AIController {
           topic: topic ?? "общая тема",
           difficulty: difficulty,
           previousQuestion: existingTexts[existingTexts.length - 1],
+          previousQA: Array.isArray(previousQA) ? previousQA : undefined,
         };
 
         try {

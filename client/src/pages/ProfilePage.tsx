@@ -85,13 +85,17 @@ export default function ProfilePage() {
     const server = pi?.progress ?? null;
     const local = localProgress[a.slug];
     const theoryModules = pi?.theoryModules ?? 0;
-    const completedModules = pi?.completedModules ?? 0;
+    // Читаем пройденные модули из localStorage (там хранится реальное прохождение)
+    const localModulesRaw = localStorage.getItem(`algo.modules.${a.algorithm_id}`);
+    const localCompletedModules: number[] = localModulesRaw ? (() => { try { return JSON.parse(localModulesRaw); } catch { return []; } })() : [];
+    const completedModules = Math.max(localCompletedModules.length, pi?.completedModules ?? 0);
     const theoryPct = theoryModules > 0 ? Math.round((completedModules / theoryModules) * 100) : 0;
     const theory_done = server?.theory_completed ?? local?.theory_completed ?? false;
     const test_done = server?.test_completed ?? local?.test_completed ?? false;
     const practice_done = server?.practice_completed ?? local?.practice_completed ?? false;
-    const score = server?.score_percent ?? local?.best_score_percent ?? 0;
-    const combinedScore = theoryPct > score ? Math.max(score, theoryPct) : score;
+    // Процент = сколько из 3 разделов пройдено (теория/тест/практика)
+    const sectionsDone = [theory_done, test_done, practice_done].filter(Boolean).length;
+    const combinedScore = Math.round((sectionsDone / 3) * 100);
 
     return {
       algorithm: a,

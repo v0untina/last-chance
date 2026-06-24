@@ -11,6 +11,7 @@ export function createTestRouter(testController: TestController, aiController?: 
   router.get("/:id", testController.getTest);
   router.get("/by-algorithm/:algorithmId", testController.getByAlgorithm);
   router.post("/:id/submit", testController.submit);
+  router.post("/:id/check-answer", testController.checkAnswer);
 
   // AI-генерация новых вопросов для теста
   if (aiController) {
